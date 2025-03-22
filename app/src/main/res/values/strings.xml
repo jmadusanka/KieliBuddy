@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">KieliBuddy</string>
+    <string name="facebook_app_id">1248686290149544</string>
+    <string name="Googler_Client_id">905483735792-0dvuerutv7jvqrqpqdd06cav1tg0umd7.apps.googleusercontent.com</string>
 </resources>

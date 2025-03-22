@@ -1,5 +1,6 @@
 package com.example.kielibuddy
 
+import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
@@ -12,18 +13,18 @@ import com.example.kielibuddy.ui.pages.SignupPage
 import com.example.kielibuddy.viewmodel.AuthViewModel
 
 @Composable
-fun Navigation(modifier: Modifier = Modifier,authViewModel: AuthViewModel) {
+fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, activity: Activity) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "login", builder = {
-        composable("login"){
-            LoginPage(modifier,navController,authViewModel)
+    NavHost(navController = navController, startDestination = "login") {
+        composable("login") {
+            LoginPage(modifier, navController, authViewModel, activity)
         }
-        composable("signup"){
-            SignupPage(modifier,navController,authViewModel)
+        composable("signup") {
+            SignupPage(modifier, navController, authViewModel)
         }
-        composable("home"){
-            HomePage(modifier,navController,authViewModel)
+        composable("home") {
+            HomePage(modifier, navController, authViewModel)
         }
-    })
+    }
 }

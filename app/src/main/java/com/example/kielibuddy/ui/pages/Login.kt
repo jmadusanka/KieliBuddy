@@ -1,15 +1,14 @@
 package com.example.kielibuddy.ui.pages
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,25 +30,23 @@ import com.example.kielibuddy.viewmodel.AuthViewModel
 
 
 @Composable
-fun LoginPage(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
-
-
-    var email by remember {
-        mutableStateOf("")
-    }
-
-    var password by remember {
-        mutableStateOf("")
-    }
-
-    val authState = authViewModel.authState.observeAsState()
+fun LoginPage(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    activity: Activity
+) {
     val context = LocalContext.current
+    val activity = context as Activity
+
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    val authState = authViewModel.authState.observeAsState()
 
     LaunchedEffect(authState.value) {
-        when(authState.value){
+        when (authState.value) {
             is AuthState.Authenticated -> navController.navigate("home")
-            is AuthState.Error -> Toast.makeText(context,
-                (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT).show()
+            is AuthState.Error -> Toast.makeText(context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT).show()
             else -> Unit
         }
     }
@@ -60,49 +57,43 @@ fun LoginPage(modifier: Modifier = Modifier, navController: NavController, authV
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Login Page", fontSize = 32.sp)
-
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = email,
-            onValueChange = {
-                email = it
-            },
-            label = {
-                Text(text = "Email")
-            }
+            onValueChange = { email = it },
+            label = { Text(text = "Email") }
         )
-
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = password,
-            onValueChange = {
-                password = it
-            },
-            label = {
-                Text(text = "Password")
-            }
+            onValueChange = { password = it },
+            label = { Text(text = "Password") }
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = {
-            authViewModel.login(email,password)
-        },
+        Button(
+            onClick = { authViewModel.login(email, password) },
             enabled = authState.value != AuthState.Loading
         ) {
             Text(text = "Login")
         }
-
-
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextButton(onClick = {
-            navController.navigate("signup")
-        }) {
-            Text(text = "Don't have an account, Signup")
+        TextButton(onClick = { navController.navigate("signup") }) {
+            Text(text = "Don't have an account? Signup")
         }
 
-    }
+        Spacer(modifier = Modifier.height(16.dp))
 
+        OutlinedButton(onClick = { authViewModel.handleGoogleSignIn(context, navController) }) {
+            Text(text = "Sign in with Google")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+
+
+    }
 }
