@@ -18,10 +18,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.kielibuddy.R
 
 @Composable
-fun WelcomePage(modifier: Modifier = Modifier) {
+fun WelcomePage(
+    modifier: Modifier = Modifier,
+    navController: NavController // Add NavController parameter
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -44,21 +49,21 @@ fun WelcomePage(modifier: Modifier = Modifier) {
                 text = "Let's start",
                 color = Color.White,
                 fontSize = 30.sp,
-                modifier = Modifier.padding(bottom = 16.dp) // Add spacing below this text
+                modifier = Modifier.padding(bottom = 16.dp)
             )
 
             Text(
                 text = "your Finnish",
                 color = Color.White,
                 fontSize = 30.sp,
-                modifier = Modifier.padding(bottom = 16.dp) // Add spacing below this text
+                modifier = Modifier.padding(bottom = 16.dp)
             )
 
             Text(
                 text = "learning journey",
                 color = Color.White,
                 fontSize = 30.sp,
-                modifier = Modifier.padding(bottom = 16.dp) // Add spacing below this text
+                modifier = Modifier.padding(bottom = 16.dp)
             )
 
             Text(
@@ -70,7 +75,7 @@ fun WelcomePage(modifier: Modifier = Modifier) {
 
             // Get Started Button
             Button(
-                onClick = { /* Handle button click */ },
+                onClick = { navController.navigate("login") }, // Navigate to Login Page
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier.padding(top = 24.dp)
             ) {
@@ -87,5 +92,7 @@ fun WelcomePage(modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun WelcomePagePreview() {
-    WelcomePage()
+    WelcomePage(
+        navController = rememberNavController()
+    )
 }

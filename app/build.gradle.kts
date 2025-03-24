@@ -63,5 +63,11 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation ("androidx.compose.ui:ui:1.0.0")
+    implementation ("androidx.compose.material3:material3:1.0.0")
+    implementation ("androidx.navigation:navigation-compose:2.4.0-alpha10")
+    implementation ("com.google.firebase:firebase-auth-ktx:21.0.1")
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+
 
 }
