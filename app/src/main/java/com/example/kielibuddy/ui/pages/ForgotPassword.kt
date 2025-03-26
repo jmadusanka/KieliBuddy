@@ -17,11 +17,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.kielibuddy.viewmodel.AuthViewModel
 
 @Composable
 fun ForgotPasswordPage(
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    authViewModel: AuthViewModel
 ) {
     Box(
         modifier = Modifier
