@@ -1,8 +1,9 @@
-package com.example.kielibuddy.ui.pages
+package com.example.kielibuddy.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Button // Import Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.livedata.observeAsState
@@ -15,15 +16,16 @@ import androidx.navigation.NavController
 import com.example.kielibuddy.viewmodel.AuthState
 import com.example.kielibuddy.viewmodel.AuthViewModel
 
-
-
 @Composable
-fun HomePage(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
-
+fun HomePage(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    authViewModel: AuthViewModel
+) {
     val authState = authViewModel.authState.observeAsState()
 
     LaunchedEffect(authState.value) {
-        when(authState.value){
+        when (authState.value) {
             is AuthState.Unauthenticated -> navController.navigate("login")
             else -> Unit
         }
@@ -36,12 +38,28 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
     ) {
         Text(text = "Home Page", fontSize = 32.sp)
 
+        // Button to navigate to ProfileScreen
+        Button(onClick = { navController.navigate("profile") }) {
+            Text(text = "Go to Profile")
+        }
+
+        Button(onClick = {navController.navigate("Tutor list")}){
+            Text(text="TutorListScreen")
+        }
+
+        Button(onClick = {navController.navigate("student dashboard")}) {
+            Text(text="student Home Screen")
+        }
+
+        Button(onClick = {navController.navigate("Tutor Dashboard")}) {
+            Text(text="Tutor Home Screen")
+        }
+
+
         TextButton(onClick = {
             authViewModel.signout()
         }) {
             Text(text = "Sign out")
         }
     }
-
 }
-
