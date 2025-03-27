@@ -1,5 +1,4 @@
 package com.example.kielibuddy.viewmodel
-
 import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -20,7 +19,7 @@ import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.tasks.await
-import com.facebook.CallbackManager
+//import com.facebook.CallbackManager
 
 
 class AuthViewModel : ViewModel() {
@@ -28,7 +27,7 @@ class AuthViewModel : ViewModel() {
     private val _authState = MutableLiveData<AuthState>()
     val authState: LiveData<AuthState> = _authState
     val user = MutableLiveData<User?>(null)
-    private val callbackManager: CallbackManager = CallbackManager.Factory.create()
+//    private val callbackManager: CallbackManager = CallbackManager.Factory.create()
 
     init {
         checkAuthStatus()
@@ -52,16 +51,32 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun signup(email: String, password: String) {
-        if (email.isEmpty() || password.isEmpty()) {
-            _authState.value = AuthState.Error("Email or password can't be empty")
+    fun signup(email: String, password: String, fullName: String, userType: String) {
+        if (email.isEmpty() || password.isEmpty() || fullName.isEmpty() || userType.isEmpty()) {
+            _authState.value = AuthState.Error("All fields are required")
             return
         }
         _authState.value = AuthState.Loading
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task ->
-            _authState.value = if (task.isSuccessful) AuthState.Authenticated else AuthState.Error(
-                task.exception?.message ?: "Something went wrong"
-            )
+            if (task.isSuccessful) {
+
+                val currentUser = auth.currentUser
+                if (currentUser != null) {
+                    user.value = User(
+                        id = currentUser.uid,
+                        name = fullName,
+                        email = email,
+                        photoUrl = "",
+                        subscription = userType
+                    )
+
+                    _authState.value = AuthState.Authenticated
+                }
+            } else {
+                _authState.value = AuthState.Error(
+                    task.exception?.message ?: "Something went wrong"
+                )
+            }
         }
     }
 
@@ -132,6 +147,27 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
+
+    fun sendPasswordResetEmail(email: String, onComplete: () -> Unit) {
+        if (email.isEmpty()) {
+            _authState.value = AuthState.Error("Email can't be empty")
+            return
+        }
+
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onComplete()
+                } else {
+                    _authState.value = AuthState.Error(
+                        task.exception?.message ?: "Failed to send reset email"
+                    )
+                }
+            }
+    }
+
+
+
 }
 
 sealed class AuthState {
