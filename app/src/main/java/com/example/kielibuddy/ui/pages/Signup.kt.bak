@@ -34,9 +34,8 @@ fun SignupPage(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var firstName by remember { mutableStateOf("") }
-    var lastName by remember { mutableStateOf("") }
-    var userType by remember { mutableStateOf("") }
+    var fullName by remember { mutableStateOf("") }
+    var userType by remember { mutableStateOf("") } // "student" or "tutor"
     val authState = authViewModel.authState.observeAsState()
     val context = LocalContext.current
 
@@ -122,25 +121,9 @@ fun SignupPage(
 
             // Full Name field now comes after the user type selection
             TextField(
-                value = firstName,
-                onValueChange = { firstName = it },
-                label = { Text("First Name") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
-            )
-
-            TextField(
-                value = lastName,
-                onValueChange = { lastName = it },
-                label = { Text("Last Name") },
+                value = fullName,
+                onValueChange = { fullName = it },
+                label = { Text("Full Name") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp),
@@ -187,9 +170,7 @@ fun SignupPage(
             )
 
             Button(
-                onClick = {
-                authViewModel.signup(firstName, lastName, email, password)
-            }, enabled = authState.value != AuthState.Loading,
+                onClick = { authViewModel.signup(email, password, fullName, userType) },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF9370DB),
                     contentColor = Color.White

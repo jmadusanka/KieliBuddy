@@ -41,12 +41,11 @@ android {
 }
 
 dependencies {
-    // Core Android
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-
-    // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -54,33 +53,20 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.runtime.livedata)
-
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.auth)
-
-    // Authentication
-    implementation(libs.play.services.auth)  // Google Sign-In
-    implementation(libs.androidx.credentials)  // Modern credential management
+    implementation(libs.firebase.crashlytics.buildtools)
+    implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
-    implementation(libs.googleid)  // Google One Tap
-//    implementation(libs.facebook.android.sdk)
+    implementation(libs.googleid)
     implementation(libs.play.services.auth)
-
-    // ViewModel
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-
-    // Testing
+    implementation(libs.firebase.firestore)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
-
-    // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation (libs.facebook.login)
+    implementation (libs.firebase.auth)
 }

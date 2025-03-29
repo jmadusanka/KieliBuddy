@@ -33,11 +33,10 @@ fun LoginPage(
     authViewModel: AuthViewModel,
     activity: Activity
 ) {
-    val context = LocalContext.current
-    val activity = context as Activity
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val authState = authViewModel.authState.observeAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(authState.value) {
         when (authState.value) {
@@ -65,7 +64,7 @@ fun LoginPage(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "KieliBuddy Logo",
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(380.dp)
                     .padding(top = 8.dp)
             )
 
@@ -123,7 +122,6 @@ fun LoginPage(
                 ) {
                     Button(
                         onClick = { authViewModel.login(email, password) },
-            			enabled = authState.value != AuthState.Loading,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF9370DB),
                             contentColor = Color.White
