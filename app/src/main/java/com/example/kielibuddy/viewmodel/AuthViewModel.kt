@@ -1,11 +1,11 @@
 package com.example.kielibuddy.viewmodel
+
 import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kielibuddy.R
-import com.example.kielibuddy.model.User
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -16,10 +16,15 @@ import kotlinx.coroutines.launch
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
+import com.example.kielibuddy.model.SubscriptionStatus
+import com.example.kielibuddy.model.UserModel
+import com.example.kielibuddy.model.UserRole
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.tasks.await
-//import com.facebook.CallbackManager
+import com.facebook.CallbackManager
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.auth.User
 
 
 class AuthViewModel : ViewModel() {
@@ -27,7 +32,8 @@ class AuthViewModel : ViewModel() {
     private val _authState = MutableLiveData<AuthState>()
     val authState: LiveData<AuthState> = _authState
     val user = MutableLiveData<User?>(null)
-//    private val callbackManager: CallbackManager = CallbackManager.Factory.create()
+    private val callbackManager: CallbackManager = CallbackManager.Factory.create()
+    private val fireStore = FirebaseFirestore.getInstance()
 
     init {
         checkAuthStatus()
@@ -45,38 +51,31 @@ class AuthViewModel : ViewModel() {
         }
         _authState.value = AuthState.Loading
         auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
-            _authState.value = if (task.isSuccessful) AuthState.Authenticated else AuthState.Error(
+            _authState.value = if (task.isSuccessful) {
+
+                AuthState.Authenticated
+            } else AuthState.Error(
                 task.exception?.message ?: "Something went wrong"
             )
         }
     }
 
-    fun signup(email: String, password: String, fullName: String, userType: String) {
-        if (email.isEmpty() || password.isEmpty() || fullName.isEmpty() || userType.isEmpty()) {
-            _authState.value = AuthState.Error("All fields are required")
+    fun signup(firstName: String, lastName: String, email: String, password: String) {
+        if (email.isEmpty() || password.isEmpty()) {
+            _authState.value = AuthState.Error("Email or password can't be empty")
             return
         }
         _authState.value = AuthState.Loading
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task ->
-            if (task.isSuccessful) {
+            _authState.value = if (task.isSuccessful){
+                val userid = task.result.user?.uid
 
-                val currentUser = auth.currentUser
-                if (currentUser != null) {
-                    user.value = User(
-                        id = currentUser.uid,
-                        name = fullName,
-                        email = email,
-                        photoUrl = "",
-                        subscription = userType
-                    )
-
-                    _authState.value = AuthState.Authenticated
-                }
-            } else {
-                _authState.value = AuthState.Error(
-                    task.exception?.message ?: "Something went wrong"
-                )
-            }
+                val userModel = UserModel(userid!!, firstName ?: "", lastName?: "", email ?: "", "", SubscriptionStatus.ACTIVE, UserRole.STUDENT, 1)
+                storeUserData(userModel)
+                AuthState.Authenticated
+            } else AuthState.Error(
+                task.exception?.message ?: "Something went wrong"
+            )
         }
     }
 
@@ -128,12 +127,11 @@ class AuthViewModel : ViewModel() {
                     onSuccess = { authResult ->
                         val currentUser = authResult.user
                         if (currentUser != null) {
-                            user.value = User(
-                                currentUser.uid,
-                                currentUser.displayName ?: "",
-                                currentUser.email ?: "",
-                                currentUser.photoUrl.toString()
-                            )
+
+                            val nameParts = currentUser.displayName.toString().split(" ")
+                            val userModel = UserModel(currentUser.uid,  nameParts[0]?: "",  nameParts[1]?: "", currentUser.email ?: "", currentUser.photoUrl.toString() ?: "",SubscriptionStatus.ACTIVE, UserRole.STUDENT, 1)
+                            storeUserData(userModel)
+
                             _authState.value = AuthState.Authenticated
                             navController.navigate("home") {
                                 popUpTo("login") { inclusive = true }
@@ -146,6 +144,15 @@ class AuthViewModel : ViewModel() {
                 )
             }
         }
+    }
+    fun storeUserData(user: UserModel) {
+        fireStore.collection("users").document(user.id).set(user)
+            .addOnSuccessListener {
+                _authState.value = AuthState.Authenticated
+            }
+            .addOnFailureListener { e ->
+                _authState.value = AuthState.Error(e.localizedMessage ?: "Something went wrong")
+            }
     }
 
     fun sendPasswordResetEmail(email: String, onComplete: () -> Unit) {
@@ -165,9 +172,6 @@ class AuthViewModel : ViewModel() {
                 }
             }
     }
-
-
-
 }
 
 sealed class AuthState {
