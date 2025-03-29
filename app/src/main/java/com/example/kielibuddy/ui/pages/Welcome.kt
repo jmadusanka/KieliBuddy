@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -25,15 +27,18 @@ import com.example.kielibuddy.R
 @Composable
 fun WelcomePage(
     modifier: Modifier = Modifier,
-    navController: NavController // Add NavController parameter
+    navController: NavController
 ) {
+    val scrollState = rememberScrollState() // Add scroll state
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF8A2BE2)), // Purple background
+            .background(Color(0xFF8A2BE2)),
         contentAlignment = Alignment.Center
     ) {
         Column(
+            modifier = Modifier.verticalScroll(scrollState), // Add scroll modifier
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Add Image
@@ -41,7 +46,8 @@ fun WelcomePage(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "KieliBuddy Logo",
                 modifier = Modifier
-                    .size(380.dp)
+                    .size(300.dp)
+                    .padding(vertical = 32.dp) // Add vertical padding
             )
 
             // Add Text Elements
@@ -56,43 +62,37 @@ fun WelcomePage(
                 text = "your Finnish",
                 color = Color.White,
                 fontSize = 30.sp,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             Text(
                 text = "learning journey",
                 color = Color.White,
                 fontSize = 30.sp,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             Text(
                 text = "together",
                 color = Color.White,
                 fontSize = 30.sp,
-                modifier = Modifier.padding(bottom = 20.dp) // Add spacing below this text
+                modifier = Modifier.padding(bottom = 32.dp) // Increased bottom padding
             )
 
             // Get Started Button
             Button(
-                onClick = { navController.navigate("login") }, // Navigate to Login Page
+                onClick = { navController.navigate("login") },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                modifier = Modifier.padding(top = 24.dp)
+                modifier = Modifier
+                    .padding(top = 24.dp)
+                    .padding(bottom = 32.dp) // Add bottom padding for scroll
             ) {
                 Text(
                     text = "Get Started",
-                    color = Color.White, // Purple text color
+                    color = Color.White,
                     fontSize = 18.sp
                 )
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun WelcomePagePreview() {
-    WelcomePage(
-        navController = rememberNavController()
-    )
 }

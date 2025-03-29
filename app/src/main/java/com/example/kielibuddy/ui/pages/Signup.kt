@@ -5,7 +5,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -39,6 +41,7 @@ fun SignupPage(
     var userType by remember { mutableStateOf("") }
     val authState = authViewModel.authState.observeAsState()
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(authState.value) {
         when (authState.value) {
@@ -56,6 +59,7 @@ fun SignupPage(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF8A2BE2))
+            .verticalScroll(scrollState) // Added scroll here
     ) {
         Box(
             modifier = Modifier
@@ -79,14 +83,16 @@ fun SignupPage(
             modifier = Modifier
                 .size(300.dp)
                 .align(Alignment.CenterHorizontally)
+                .padding(bottom = 16.dp) // Added some bottom padding
         )
 
         Column(
             modifier = Modifier
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp), // Added bottom padding for scroll
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Moved the user type selection to the top
+            // User type selection
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -120,7 +126,7 @@ fun SignupPage(
                 }
             }
 
-            // Full Name field now comes after the user type selection
+            // Form fields
             TextField(
                 value = firstName,
                 onValueChange = { firstName = it },
@@ -188,8 +194,9 @@ fun SignupPage(
 
             Button(
                 onClick = {
-                authViewModel.signup(firstName, lastName, email, password)
-            }, enabled = authState.value != AuthState.Loading,
+                    authViewModel.signup(firstName, lastName, email, password)
+                },
+                enabled = authState.value != AuthState.Loading,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF9370DB),
                     contentColor = Color.White
@@ -210,7 +217,7 @@ fun SignupPage(
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier
                     .clickable { navController.popBackStack() }
-                    .padding(top = 16.dp)
+                    .padding(top = 16.dp, bottom = 32.dp) // Added more padding for scroll
             )
         }
     }
