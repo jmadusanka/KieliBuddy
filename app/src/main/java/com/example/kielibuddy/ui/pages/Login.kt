@@ -15,6 +15,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -36,22 +37,30 @@ fun LoginPage(
     activity: Activity
 ) {
     val context = LocalContext.current
-    val activity = context as Activity
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var emailError by remember { mutableStateOf(false) }
+    var passwordError by remember { mutableStateOf(false) }
     val authState = authViewModel.authState.observeAsState()
     val scrollState = rememberScrollState()
 
+    // Handle Firebase responses
     LaunchedEffect(authState.value) {
         when (authState.value) {
             is AuthState.Authenticated -> navController.navigate("home")
-            is AuthState.Error -> Toast.makeText(
-                context,
-                (authState.value as AuthState.Error).message,
-                Toast.LENGTH_SHORT
-            ).show()
+            is AuthState.Error -> {
+                val error = (authState.value as AuthState.Error).message
+                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+            }
             else -> Unit
         }
+    }
+
+    //  validation
+    fun validateInputs(): Boolean {
+        emailError = email.isBlank()
+        passwordError = password.isBlank()
+        return !emailError && !passwordError
     }
 
     Box(
@@ -63,19 +72,19 @@ fun LoginPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState), // Added scroll here
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top content (logo + form fields)
+            // Logo and input fields
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 24.dp), // Added bottom padding
+                    .padding(bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "KieliBuddy Logo",
+                    contentDescription = "App Logo",
                     modifier = Modifier
                         .size(280.dp)
                         .padding(top = 8.dp)
@@ -87,42 +96,76 @@ fun LoginPage(
                         .padding(horizontal = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Email field
                     TextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = {
+                            email = it
+                            emailError = false
+                        },
                         label = { Text("Email") },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 12.dp),
+                            .padding(bottom = 4.dp),
                         shape = RoundedCornerShape(20.dp),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
                             unfocusedContainerColor = Color.White,
                             focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            errorIndicatorColor = Color.Transparent,
+                            errorContainerColor = Color(0xFFF5F5F5)
+                        ),
+                        isError = emailError
                     )
+                    if (emailError) {
+                        Text(
+                            text = "Email is required",
+                            color = Color.Red.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, bottom = 8.dp)
+                        )
+                    }
 
+                    // Password field
                     TextField(
                         value = password,
-                        onValueChange = { password = it },
+                        onValueChange = {
+                            password = it
+                            passwordError = false
+                        },
                         label = { Text("Password") },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 12.dp),
+                            .padding(bottom = 4.dp),
                         shape = RoundedCornerShape(20.dp),
                         visualTransformation = PasswordVisualTransformation(),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
                             unfocusedContainerColor = Color.White,
                             focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            errorIndicatorColor = Color.Transparent,
+                            errorContainerColor = Color(0xFFF5F5F5)
+                        ),
+                        isError = passwordError
                     )
+                    if (passwordError) {
+                        Text(
+                            text = "Password is required",
+                            color = Color.Red.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, bottom = 8.dp)
+                        )
+                    }
                 }
             }
 
-            // Bottom white box (now without weight)
+            // Bottom section (buttons)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -134,16 +177,25 @@ fun LoginPage(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
+                    // Login button
                     Button(
-                        onClick = { authViewModel.login(email, password) },
+                        onClick = {
+                            if (validateInputs()) {
+                                authViewModel.login(email, password)
+                            }
+                        },
                         enabled = authState.value != AuthState.Loading,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF9370DB),
-                            contentColor = Color.White
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFF9370DB).copy(alpha = 0.5f),
                         ),
                         modifier = Modifier
-                            .fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                shadowElevation = 4.dp.toPx()
+                                shape = RoundedCornerShape(20.dp)
+                            },
                         contentPadding = PaddingValues(16.dp)
                     ) {
                         Text("Login", fontSize = 18.sp)
@@ -151,6 +203,7 @@ fun LoginPage(
 
                     Text("or continue with", color = Color.Black, modifier = Modifier.padding(top = 16.dp))
 
+                    // Google sign-in
                     Row(modifier = Modifier.padding(top = 16.dp)) {
                         Button(
                             onClick = { authViewModel.handleGoogleSignIn(context, navController) },
@@ -158,13 +211,18 @@ fun LoginPage(
                                 containerColor = Color(0xFFDB4437),
                                 contentColor = Color.White
                             ),
-                            modifier = Modifier.padding(end = 8.dp),
-                            shape = RoundedCornerShape(20.dp)
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .graphicsLayer {
+                                    shadowElevation = 3.dp.toPx()
+                                    shape = RoundedCornerShape(20.dp)
+                                },
                         ) {
                             Text("Google", color = Color.White)
                         }
                     }
 
+                    // Forgot password
                     Text(
                         text = "Forgot Password?",
                         color = Color.Black,
@@ -176,16 +234,19 @@ fun LoginPage(
 
                     Text("or", color = Color.Black, modifier = Modifier.padding(top = 16.dp))
 
+                    // Sign-up button
                     Button(
                         onClick = { navController.navigate("signup") },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF892BE1),
+                            containerColor = Color(0xFF9370DB),
                             contentColor = Color.White
                         ),
                         modifier = Modifier
-                            .fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        contentPadding = PaddingValues(16.dp)
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                shadowElevation = 2.dp.toPx()
+                                shape = RoundedCornerShape(20.dp)
+                            },
                     ) {
                         Text("Create an account", fontSize = 18.sp)
                     }

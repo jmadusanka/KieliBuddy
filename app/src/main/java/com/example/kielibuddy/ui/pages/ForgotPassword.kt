@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -27,6 +28,12 @@ fun ForgotPasswordPage(
 ) {
     var email by remember { mutableStateOf("") }
     var showSuccess by remember { mutableStateOf(false) }
+    var emailError by remember { mutableStateOf(false) }
+
+    fun validateEmail(): Boolean {
+        emailError = email.isBlank()
+        return !emailError
+    }
 
     Box(
         modifier = Modifier
@@ -41,7 +48,7 @@ fun ForgotPasswordPage(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (showSuccess) {
-                // Success message state
+                // Success message
                 Text(
                     text = "Reset email sent!",
                     color = Color.White,
@@ -50,13 +57,13 @@ fun ForgotPasswordPage(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Text(
-                    text = "Check your email for reset instructions",
+                    text = "Check your email for instructions",
                     color = Color.White,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
             } else {
-                // Normal state
+                // Form state
                 Text(
                     text = "Forgot Password?",
                     color = Color.White,
@@ -65,36 +72,54 @@ fun ForgotPasswordPage(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Text(
-                    text = "No worries, we'll send you reset instructions",
+                    text = "We'll send you reset instructions",
                     color = Color.White,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
-                // Email Input Field
+                // Email field - No underline in any state
                 TextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = {
+                        email = it
+                        emailError = false
+                    },
                     label = { Text("Email") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 4.dp),
                     shape = RoundedCornerShape(20.dp),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
+                        focusedContainerColor = if (emailError) Color(0xFFF5F5F5) else Color.White,
+                        unfocusedContainerColor = if (emailError) Color(0xFFF5F5F5) else Color.White,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        errorIndicatorColor = Color.Transparent, // No red underline
+                        errorContainerColor = Color(0xFFF5F5F5)
+                    ),
+                    isError = emailError
                 )
-            }
 
-            if (!showSuccess) {
-                // Reset Password Button
+                // Error text (without underline)
+                if (emailError) {
+                    Text(
+                        text = "Please enter your email",
+                        color = Color(0xFFF44336).copy(alpha = 0.8f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, bottom = 8.dp)
+                    )
+                }
+
+                // Reset button with shadow
                 Button(
                     onClick = {
-                        authViewModel.sendPasswordResetEmail(email) {
-                            showSuccess = true
+                        if (validateEmail()) {
+                            authViewModel.sendPasswordResetEmail(email) {
+                                showSuccess = true
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -103,15 +128,19 @@ fun ForgotPasswordPage(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    shape = RoundedCornerShape(20.dp),
+                        .padding(bottom = 16.dp)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(20.dp),
+                            clip = true
+                        ),
                     contentPadding = PaddingValues(16.dp)
                 ) {
                     Text("Reset Password", fontSize = 18.sp)
                 }
             }
 
-            // Back to Login Link
+            // Back link
             Text(
                 text = if (showSuccess) "Return to Login" else "Back to Login",
                 color = Color.White,

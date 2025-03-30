@@ -14,6 +14,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -39,6 +40,14 @@ fun SignupPage(
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var userType by remember { mutableStateOf("") }
+
+    // Error states
+    var emailError by remember { mutableStateOf(false) }
+    var passwordError by remember { mutableStateOf(false) }
+    var firstNameError by remember { mutableStateOf(false) }
+    var lastNameError by remember { mutableStateOf(false) }
+    var userTypeError by remember { mutableStateOf(false) }
+
     val authState = authViewModel.authState.observeAsState()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -55,11 +64,20 @@ fun SignupPage(
         }
     }
 
+    fun validateInputs(): Boolean {
+        firstNameError = firstName.isBlank()
+        lastNameError = lastName.isBlank()
+        emailError = email.isBlank()
+        passwordError = password.isBlank()
+        userTypeError = userType.isBlank()
+        return !firstNameError && !lastNameError && !emailError && !passwordError && !userTypeError
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF8A2BE2))
-            .verticalScroll(scrollState) // Added scroll here
+            .verticalScroll(scrollState)
     ) {
         Box(
             modifier = Modifier
@@ -69,11 +87,11 @@ fun SignupPage(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Let's\ncreate account",
+                text = "Let's create account",
                 color = Color(0xFF8A2BE2),
                 fontSize = 24.sp,
                 textAlign = TextAlign.Center,
-                lineHeight = 30.sp
+                lineHeight = 24.sp
             )
         }
 
@@ -83,13 +101,13 @@ fun SignupPage(
             modifier = Modifier
                 .size(300.dp)
                 .align(Alignment.CenterHorizontally)
-                .padding(bottom = 16.dp) // Added some bottom padding
+                .padding(bottom = 12.dp)
         )
 
         Column(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp), // Added bottom padding for scroll
+                .padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // User type selection
@@ -100,9 +118,16 @@ fun SignupPage(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 OutlinedButton(
-                    onClick = { userType = "student" },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(20.dp),
+                    onClick = {
+                        userType = "student"
+                        userTypeError = false
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .graphicsLayer {
+                            shadowElevation = 2.dp.toPx()
+                            shape = RoundedCornerShape(20.dp)
+                        },
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = if (userType == "student") Color(0xFF9370DB) else Color.White,
                         contentColor = if (userType == "student") Color.White else Color.Black
@@ -114,9 +139,16 @@ fun SignupPage(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 OutlinedButton(
-                    onClick = { userType = "tutor" },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(20.dp),
+                    onClick = {
+                        userType = "tutor"
+                        userTypeError = false
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .graphicsLayer {
+                            shadowElevation = 2.dp.toPx()
+                            shape = RoundedCornerShape(20.dp)
+                        },
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = if (userType == "tutor") Color(0xFF9370DB) else Color.White,
                         contentColor = if (userType == "tutor") Color.White else Color.Black
@@ -125,76 +157,155 @@ fun SignupPage(
                     Text("I am Tutor")
                 }
             }
+            if (userTypeError) {
+                Text(
+                    text = "Please select user role",
+                    color = Color.Red.copy(alpha = 0.8f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, bottom = 8.dp)
+                )
+            }
 
-            // Form fields
+            // First Name field
             TextField(
                 value = firstName,
-                onValueChange = { firstName = it },
+                onValueChange = {
+                    firstName = it
+                    firstNameError = false
+                },
                 label = { Text("First Name") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 4.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = if (firstNameError) Color(0xFFF5F5F5) else Color.White,
+                    unfocusedContainerColor = if (firstNameError) Color(0xFFF5F5F5) else Color.White,
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent,
+                    errorContainerColor = Color(0xFFF5F5F5)
+                ),
+                isError = firstNameError
             )
+            if (firstNameError) {
+                Text(
+                    text = "First name is required",
+                    color = Color.Red.copy(alpha = 0.8f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, bottom = 8.dp)
+                )
+            }
 
+            // Last Name field
             TextField(
                 value = lastName,
-                onValueChange = { lastName = it },
+                onValueChange = {
+                    lastName = it
+                    lastNameError = false
+                },
                 label = { Text("Last Name") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 4.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = if (lastNameError) Color(0xFFF5F5F5) else Color.White,
+                    unfocusedContainerColor = if (lastNameError) Color(0xFFF5F5F5) else Color.White,
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent,
+                    errorContainerColor = Color(0xFFF5F5F5)
+                ),
+                isError = lastNameError
             )
+            if (lastNameError) {
+                Text(
+                    text = "Last name is required",
+                    color = Color.Red.copy(alpha = 0.8f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, bottom = 8.dp)
+                )
+            }
 
+            // Email field
             TextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = {
+                    email = it
+                    emailError = false
+                },
                 label = { Text("Email") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 4.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = if (emailError) Color(0xFFF5F5F5) else Color.White,
+                    unfocusedContainerColor = if (emailError) Color(0xFFF5F5F5) else Color.White,
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent,
+                    errorContainerColor = Color(0xFFF5F5F5)
+                ),
+                isError = emailError
             )
+            if (emailError) {
+                Text(
+                    text = "Email is required",
+                    color = Color.Red.copy(alpha = 0.8f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, bottom = 8.dp)
+                )
+            }
 
+            // Password field
             TextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = {
+                    password = it
+                    passwordError = false
+                },
                 label = { Text("Password") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 8.dp),
                 shape = RoundedCornerShape(20.dp),
                 visualTransformation = PasswordVisualTransformation(),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = if (passwordError) Color(0xFFF5F5F5) else Color.White,
+                    unfocusedContainerColor = if (passwordError) Color(0xFFF5F5F5) else Color.White,
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent,
+                    errorContainerColor = Color(0xFFF5F5F5)
+                ),
+                isError = passwordError
             )
+            if (passwordError) {
+                Text(
+                    text = "Password is required",
+                    color = Color.Red.copy(alpha = 0.8f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, bottom = 8.dp)
+                )
+            }
 
+            // Sign Up button
             Button(
                 onClick = {
-                    authViewModel.signup(firstName, lastName, email, password)
+                    if (validateInputs()) {
+                        authViewModel.signup(firstName, lastName, email, password)
+                    }
                 },
                 enabled = authState.value != AuthState.Loading,
                 colors = ButtonDefaults.buttonColors(
@@ -203,8 +314,11 @@ fun SignupPage(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                shape = RoundedCornerShape(20.dp),
+                    .padding(bottom = 16.dp)
+                    .graphicsLayer {
+                        shadowElevation = 4.dp.toPx()
+                        shape = RoundedCornerShape(20.dp)
+                    },
                 contentPadding = PaddingValues(16.dp)
             ) {
                 Text("Sign Up", fontSize = 18.sp)
@@ -217,7 +331,7 @@ fun SignupPage(
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier
                     .clickable { navController.popBackStack() }
-                    .padding(top = 16.dp, bottom = 32.dp) // Added more padding for scroll
+                    .padding(top = 16.dp, bottom = 32.dp)
             )
         }
     }
