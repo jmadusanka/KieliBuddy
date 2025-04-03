@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -106,7 +107,7 @@ fun LoginPage(
                         label = { Text("Email") },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 4.dp),
+                            .padding(bottom = 8.dp),
                         shape = RoundedCornerShape(20.dp),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
@@ -165,7 +166,7 @@ fun LoginPage(
                 }
             }
 
-            // Bottom section (buttons)
+            // Bottom section buttons
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -203,22 +204,37 @@ fun LoginPage(
 
                     Text("or continue with", color = Color.Black, modifier = Modifier.padding(top = 16.dp))
 
-                    // Google sign-in
-                    Row(modifier = Modifier.padding(top = 16.dp)) {
-                        Button(
+// Social login icons
+                    Row(
+                        modifier = Modifier.padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Google icon
+                        IconButton(
                             onClick = { authViewModel.handleGoogleSignIn(context, navController) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFDB4437),
-                                contentColor = Color.White
-                            ),
                             modifier = Modifier
-                                .padding(end = 8.dp)
-                                .graphicsLayer {
-                                    shadowElevation = 3.dp.toPx()
-                                    shape = RoundedCornerShape(20.dp)
-                                },
+                                .size(48.dp)
+                                .background(Color(0xFFF5F5F5), CircleShape)
                         ) {
-                            Text("Google", color = Color.White)
+                            Image(
+                                painter = painterResource(id = R.drawable.google_icon),
+                                contentDescription = "Google login",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        // Facebook icon
+                        IconButton(
+                            onClick = { /* Handle Facebook login */ },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(Color(0xFFF5F5F5), CircleShape)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.facebook_icon),
+                                contentDescription = "Facebook login",
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
 
