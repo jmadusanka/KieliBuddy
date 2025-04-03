@@ -69,4 +69,5 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation (libs.facebook.login)
     implementation (libs.firebase.auth)
+    implementation(libs.play.services.location)
 }

@@ -140,7 +140,7 @@ fun SignupPage(
 
                 OutlinedButton(
                     onClick = {
-                        userType = "tutor"
+                        userType = "TEACHER"
                         userTypeError = false
                     },
                     modifier = Modifier
@@ -150,8 +150,8 @@ fun SignupPage(
                             shape = RoundedCornerShape(20.dp)
                         },
                     colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (userType == "tutor") Color(0xFF9370DB) else Color.White,
-                        contentColor = if (userType == "tutor") Color.White else Color.Black
+                        containerColor = if (userType == "TEACHER") Color(0xFF9370DB) else Color.White,
+                        contentColor = if (userType == "TEACHER") Color.White else Color.Black
                     )
                 ) {
                     Text("I am Tutor")
@@ -304,7 +304,7 @@ fun SignupPage(
             Button(
                 onClick = {
                     if (validateInputs()) {
-                        authViewModel.signup(firstName, lastName, email, password)
+                        authViewModel.signup(firstName, lastName, email, password, userType)
                     }
                 },
                 enabled = authState.value != AuthState.Loading,

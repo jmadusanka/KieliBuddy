@@ -181,7 +181,7 @@ fun LoginPage(
                     Button(
                         onClick = {
                             if (validateInputs()) {
-                                authViewModel.login(email, password)
+                                authViewModel.login(email, password, navController)
                             }
                         },
                         enabled = authState.value != AuthState.Loading,

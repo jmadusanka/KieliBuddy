@@ -16,9 +16,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.kielibuddy.viewmodel.AuthViewModel
 
 @Composable
-fun TutorHomeScreen(modifier: Modifier = Modifier, navController: NavController) {
+fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
     Column(
         modifier = modifier
             .fillMaxSize()

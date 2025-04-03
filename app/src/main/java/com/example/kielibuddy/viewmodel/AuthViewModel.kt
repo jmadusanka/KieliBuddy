@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
+import androidx.navigation.NavController
 import com.example.kielibuddy.model.SubscriptionStatus
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
@@ -25,6 +26,7 @@ import kotlinx.coroutines.tasks.await
 import com.facebook.CallbackManager
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.auth.User
+import com.example.kielibuddy.repository.UserRepository
 
 
 class AuthViewModel : ViewModel() {
@@ -35,32 +37,53 @@ class AuthViewModel : ViewModel() {
     private val callbackManager: CallbackManager = CallbackManager.Factory.create()
     private val fireStore = FirebaseFirestore.getInstance()
 
-    init {
-        checkAuthStatus()
+    private val repository = UserRepository()
+
+    private val _userData = MutableLiveData<UserModel?>()
+    val userData: LiveData<UserModel?> = _userData
+
+    fun loadUserData(userId: String, navController: NavController) {
+        viewModelScope.launch {
+            val user = repository.getUserDetails(userId)
+            if (user != null) {
+               // _userData.value = user
+                _authState.value = AuthState.Authenticated
+                fetchUserRole(userId, navController)
+            } else {
+                _authState.value = AuthState.Error("User data not found")
+            }
+        }
     }
 
-    fun checkAuthStatus() {
-        _authState.value =
-            if (auth.currentUser == null) AuthState.Unauthenticated else AuthState.Authenticated
+
+    fun checkAuthStatus(navController: NavController) {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            loadUserData(currentUser.uid, navController)  // Load user data and navigate
+        } else {
+            _authState.value = AuthState.Unauthenticated
+        }
     }
 
-    fun login(email: String, password: String) {
+    fun login(email: String, password: String, navController: NavController) {
         if (email.isEmpty() || password.isEmpty()) {
             _authState.value = AuthState.Error("Email or password can't be empty")
             return
         }
         _authState.value = AuthState.Loading
         auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
-            _authState.value = if (task.isSuccessful) {
-
-                AuthState.Authenticated
-            } else AuthState.Error(
-                task.exception?.message ?: "Something went wrong"
-            )
+            if (task.isSuccessful) {
+                val userId = task.result.user?.uid
+                if (userId != null) {
+                    fetchUserRole(userId, navController)
+                }
+            } else {
+                _authState.value = AuthState.Error(task.exception?.message ?: "Something went wrong")
+            }
         }
     }
 
-    fun signup(firstName: String, lastName: String, email: String, password: String) {
+    fun signup(firstName: String, lastName: String, email: String, password: String, userType: String) {
         if (email.isEmpty() || password.isEmpty()) {
             _authState.value = AuthState.Error("Email or password can't be empty")
             return
@@ -69,13 +92,23 @@ class AuthViewModel : ViewModel() {
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task ->
             _authState.value = if (task.isSuccessful){
                 val userid = task.result.user?.uid
+                val userRole = getUserRole(userType)
 
-                val userModel = UserModel(userid!!, firstName ?: "", lastName?: "", email ?: "", "", SubscriptionStatus.ACTIVE, UserRole.STUDENT, 1)
+                val userModel = UserModel(userid!!, firstName ?: "", lastName?: "", email ?: "", "", SubscriptionStatus.ACTIVE, userRole, 1)
                 storeUserData(userModel)
                 AuthState.Authenticated
             } else AuthState.Error(
                 task.exception?.message ?: "Something went wrong"
             )
+        }
+    }
+
+    fun getUserRole(role: String?): UserRole {
+        return when (role?.lowercase()) {
+            "student" -> UserRole.STUDENT
+            "teacher" -> UserRole.TEACHER
+            "admin" -> UserRole.ADMIN
+            else -> UserRole.STUDENT
         }
     }
 
@@ -132,10 +165,11 @@ class AuthViewModel : ViewModel() {
                             val userModel = UserModel(currentUser.uid,  nameParts[0]?: "",  nameParts[1]?: "", currentUser.email ?: "", currentUser.photoUrl.toString() ?: "",SubscriptionStatus.ACTIVE, UserRole.STUDENT, 1)
                             storeUserData(userModel)
 
-                            _authState.value = AuthState.Authenticated
-                            navController.navigate("home") {
-                                popUpTo("login") { inclusive = true }
-                            }
+                           // _authState.value = AuthState.Authenticated
+                            fetchUserRole(currentUser.uid, navController)
+//                            navController.navigate("home") {
+//                                popUpTo("login") { inclusive = true }
+//                            }
                         }
                     },
                     onFailure = { e ->
@@ -145,6 +179,37 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
+
+    private fun fetchUserRole(userId: String, navController: NavController) {
+        fireStore.collection("users").document(userId).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val userRole = document.getString("role") ?: "student" // Default role
+                    navigateBasedOnRole(userRole, navController)
+                } else {
+                    _authState.value = AuthState.Error("User data not found")
+                }
+            }
+            .addOnFailureListener { e ->
+                _authState.value = AuthState.Error(e.localizedMessage ?: "Error fetching user data")
+            }
+    }
+
+    private fun navigateBasedOnRole(role: String, navController: NavController) {
+        println("Role: $role")
+        val destination = when (role.lowercase()) {
+            "student" -> "studentHome"
+            "teacher" -> "tutorHome"
+            else -> "home"
+        }
+        println("Role: $destination")
+
+        navController.navigate(destination) {
+            popUpTo("login") { inclusive = true }
+        }
+        _authState.value = AuthState.Authenticated
+    }
+
     fun storeUserData(user: UserModel) {
         fireStore.collection("users").document(user.id).set(user)
             .addOnSuccessListener {

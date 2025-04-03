@@ -9,13 +9,13 @@ data class UserModel(
     val subscription: SubscriptionStatus, //ACTIVE, EXPIRED, CANCELED, FREE
     val role: UserRole,// STUDENT, TEACHER
     val status: Int = 1, // 1 = active, 0 = inactive
-    val createdAt: Long = System.currentTimeMillis()
-
+    val createdAt: Long = System.currentTimeMillis(),
+    val profileCompleted: Boolean = false
 )
 
 // Enum for user role
 enum class UserRole {
-    STUDENT, TEACHER
+    STUDENT, TEACHER, ADMIN
 }
 
 // Subscription Data (Tracks student subscriptions to teachers)
