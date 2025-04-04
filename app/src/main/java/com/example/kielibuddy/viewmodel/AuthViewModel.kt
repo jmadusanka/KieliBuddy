@@ -295,6 +295,37 @@ class AuthViewModel : ViewModel() {
                 _authState.value = AuthState.Error("Failed to complete signup")
             }
     }
+
+    fun updateProfileImage(imageUrl: String) {
+        _userData.value = _userData.value?.copy(profileImg = imageUrl)
+    }
+
+    fun updateUserProfileImageOnly(imageUrl: String) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        fireStore.collection("users").document(uid).update("profileImg", imageUrl)
+    }
+
+    fun updateUserProfile(firstName: String, lastName: String, role: String, onSuccess: () -> Unit, onFailure: () -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val updates = mapOf(
+            "firstName" to firstName,
+            "lastName" to lastName,
+            "role" to role
+        )
+        fireStore.collection("users").document(uid).update(updates)
+            .addOnSuccessListener {
+                val updated = _userData.value?.copy(
+                    firstName = firstName,
+                    lastName = lastName,
+                    role = com.example.kielibuddy.model.UserRole.valueOf(role)
+                )
+                _userData.value = updated
+                onSuccess()
+            }
+            .addOnFailureListener {
+                onFailure()
+            }
+    }
 }
 
 sealed class AuthState {

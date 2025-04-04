@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.kielibuddy.ui.pages.EditableProfilePage
 import com.example.kielibuddy.ui.pages.ForgotPasswordPage
 import com.example.kielibuddy.ui.pages.HomePage
 import com.example.kielibuddy.ui.pages.LoginPage
@@ -68,6 +69,9 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
 
         composable("tutorHome") {
             TutorDashboard(navController = navController, authViewModel = authViewModel)
+        }
+        composable("editProfile") {
+            EditableProfilePage(navController = navController, authViewModel = authViewModel)
         }
     }
 }

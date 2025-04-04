@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -49,11 +51,7 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
     ) {
         // 🟢 Profile Section
 
-
-        println("JAS")
-        println(userData)
-
-        ProfileSection(userData)
+        ProfileSection(userData, navController)
         TextButton(onClick = {
             authViewModel.signout()
         }) {
@@ -79,7 +77,7 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
 }
 
 @Composable
-fun ProfileSection(user: UserModel?) {
+fun ProfileSection(user: UserModel?, navController: NavController) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -87,6 +85,16 @@ fun ProfileSection(user: UserModel?) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        IconButton(onClick = {
+            navController.navigate("editProfile")
+        }) {
+            Text("Edit", color = Color.White)
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Edit Profile",
+                tint = Color(0xFF6A3DE2)
+            )
+        }
         Image(
             painter = rememberAsyncImagePainter(user?.profileImg),
             contentDescription = "Profile Picture",
@@ -125,7 +133,7 @@ fun ProgressSection() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(10.dp),
-                color = Color(0xFF6A3DE2),
+                color = Color(0xFFDCB53D),
             )
 
             Spacer(modifier = Modifier.height(8.dp))

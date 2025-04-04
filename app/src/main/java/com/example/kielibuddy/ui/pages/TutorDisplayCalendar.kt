@@ -18,7 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.kielibuddy.ui.screens.Tutor.TimeSlotItem
+import com.example.kielibuddy.ui.pages.TimeSlotItem
 import java.time.*
 import java.time.format.TextStyle
 import java.util.*
