@@ -6,8 +6,8 @@ data class UserModel(
     val lastName: String = "",
     val email: String = "",
     val profileImg: String = "",
-    val subscription: SubscriptionStatus, //ACTIVE, EXPIRED, CANCELED, FREE
-    val role: UserRole,// STUDENT, TEACHER
+    val subscription: SubscriptionStatus = SubscriptionStatus.FREE,
+    val role: UserRole = UserRole.STUDENT,
     val status: Int = 1, // 1 = active, 0 = inactive
     val createdAt: Long = System.currentTimeMillis(),
     val profileCompleted: Boolean = false

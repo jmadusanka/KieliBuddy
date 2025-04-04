@@ -42,15 +42,34 @@ class AuthViewModel : ViewModel() {
     private val _userData = MutableLiveData<UserModel?>()
     val userData: LiveData<UserModel?> = _userData
 
-    fun loadUserData(userId: String, navController: NavController) {
+    fun loadUserData(userId: String) {
+        println("📦 loadUserData() CALLED with userId: $userId")
+
         viewModelScope.launch {
             val user = repository.getUserDetails(userId)
             if (user != null) {
-               // _userData.value = user
-                _authState.value = AuthState.Authenticated
-                fetchUserRole(userId, navController)
+                println("🎉 userData fetched from Firestore: $user")
+                _userData.value = user
             } else {
-                _authState.value = AuthState.Error("User data not found")
+                println("⚠️ userData is NULL from Firestore")
+                _authState.value = AuthState.Unauthenticated
+            }
+        }
+    }
+
+    fun loadUserDataAndNavigate(userId: String, navController: NavController) {
+        viewModelScope.launch {
+            val user = repository.getUserDetails(userId)
+            if (user != null) {
+                _userData.value = user
+                if (user.profileCompleted) {
+                    _authState.value = AuthState.Authenticated
+                    fetchUserRole(userId, navController)
+                } else {
+                    navController.navigate("completeSignup")
+                }
+            } else {
+                _authState.value = AuthState.Unauthenticated
             }
         }
     }
@@ -59,7 +78,7 @@ class AuthViewModel : ViewModel() {
     fun checkAuthStatus(navController: NavController) {
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            loadUserData(currentUser.uid, navController)  // Load user data and navigate
+            loadUserDataAndNavigate(currentUser.uid, navController)  // Load user data and navigate
         } else {
             _authState.value = AuthState.Unauthenticated
         }
@@ -75,6 +94,7 @@ class AuthViewModel : ViewModel() {
             if (task.isSuccessful) {
                 val userId = task.result.user?.uid
                 if (userId != null) {
+                    //navController.navigate("studentHome")
                     fetchUserRole(userId, navController)
                 }
             } else {
@@ -116,6 +136,8 @@ class AuthViewModel : ViewModel() {
         auth.signOut()
         _authState.value = AuthState.Unauthenticated
         user.value = null
+        _userData.value = null
+
     }
 
     /** Google Sign-In **/
@@ -153,23 +175,41 @@ class AuthViewModel : ViewModel() {
         emit(Result.failure(e))
     }
 
-    fun handleGoogleSignIn(context: Context, navController: androidx.navigation.NavController) {
+    fun handleGoogleSignIn(context: Context, navController: NavController) {
         viewModelScope.launch {
             googleSignIn(context).collect { result ->
                 result.fold(
                     onSuccess = { authResult ->
                         val currentUser = authResult.user
                         if (currentUser != null) {
-
-                            val nameParts = currentUser.displayName.toString().split(" ")
-                            val userModel = UserModel(currentUser.uid,  nameParts[0]?: "",  nameParts[1]?: "", currentUser.email ?: "", currentUser.photoUrl.toString() ?: "",SubscriptionStatus.ACTIVE, UserRole.STUDENT, 1)
-                            storeUserData(userModel)
-
-                           // _authState.value = AuthState.Authenticated
-                            fetchUserRole(currentUser.uid, navController)
-//                            navController.navigate("home") {
-//                                popUpTo("login") { inclusive = true }
-//                            }
+                            val uid = currentUser.uid
+                            val userRef = fireStore.collection("users").document(uid)
+                            val doc = userRef.get().await()
+                            if (doc.exists()) {
+                                val isCompleted = doc.getBoolean("profileCompleted") ?: false
+                                if (!isCompleted) {
+                                    _userData.value = doc.toObject(UserModel::class.java)  // Pass to screen
+                                    navController.navigate("completeSignup")
+                                } else {
+                                    fetchUserRole(uid, navController)
+                                }
+                            } else {
+                                // first time login, create dummy entry with profileCompleted = false
+                                val nameParts = currentUser.displayName.orEmpty().split(" ")
+                                val user = UserModel(
+                                    id = uid,
+                                    firstName = nameParts.getOrNull(0).orEmpty(),
+                                    lastName = nameParts.getOrNull(1).orEmpty(),
+                                    email = currentUser.email.orEmpty(),
+                                    profileImg = currentUser.photoUrl.toString(),
+                                    role = UserRole.STUDENT,
+                                    subscription = SubscriptionStatus.FREE,
+                                    profileCompleted = false
+                                )
+                                userRef.set(user).await()
+                                _userData.value = user
+                                navController.navigate("completeSignup")
+                            }
                         }
                     },
                     onFailure = { e ->
@@ -185,7 +225,7 @@ class AuthViewModel : ViewModel() {
             .addOnSuccessListener { document ->
                 if (document.exists()) {
                     val userRole = document.getString("role") ?: "student" // Default role
-                    navigateBasedOnRole(userRole, navController)
+                    navigateBasedOnRole(userRole, navController, userId)
                 } else {
                     _authState.value = AuthState.Error("User data not found")
                 }
@@ -195,17 +235,16 @@ class AuthViewModel : ViewModel() {
             }
     }
 
-    private fun navigateBasedOnRole(role: String, navController: NavController) {
+    private fun navigateBasedOnRole(role: String, navController: NavController, userId: String) {
         println("Role: $role")
         val destination = when (role.lowercase()) {
             "student" -> "studentHome"
             "teacher" -> "tutorHome"
             else -> "home"
         }
-        println("Role: $destination")
 
         navController.navigate(destination) {
-            popUpTo("login") { inclusive = true }
+            popUpTo(0) { inclusive = true }
         }
         _authState.value = AuthState.Authenticated
     }
@@ -235,6 +274,25 @@ class AuthViewModel : ViewModel() {
                         task.exception?.message ?: "Failed to send reset email"
                     )
                 }
+            }
+    }
+
+    fun signupComplete(firstName: String, lastName: String, email: String, userType: String, navController: NavController)
+    {
+        val uid = auth.currentUser?.uid ?: return
+        val role = getUserRole(userType)
+        val updateMap = mapOf(
+            "firstName" to firstName,
+            "lastName" to lastName,
+            "role" to role.name,
+            "profileCompleted" to true
+        )
+        fireStore.collection("users").document(uid).update(updateMap)
+            .addOnSuccessListener {
+                fetchUserRole(uid, navController)
+            }
+            .addOnFailureListener {
+                _authState.value = AuthState.Error("Failed to complete signup")
             }
     }
 }

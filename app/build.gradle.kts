@@ -70,4 +70,6 @@ dependencies {
     implementation (libs.facebook.login)
     implementation (libs.firebase.auth)
     implementation(libs.play.services.location)
+    implementation("com.google.android.gms:play-services-maps:19.1.0")
+    implementation("io.coil-kt:coil-compose:2.4.0")
 }

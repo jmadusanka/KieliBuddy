@@ -3,6 +3,8 @@ package com.example.kielibuddy
 import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -10,20 +12,33 @@ import androidx.navigation.compose.rememberNavController
 import com.example.kielibuddy.ui.pages.ForgotPasswordPage
 import com.example.kielibuddy.ui.pages.HomePage
 import com.example.kielibuddy.ui.pages.LoginPage
+import com.example.kielibuddy.ui.pages.SignupCompletePage
 
 import com.example.kielibuddy.ui.pages.SignupPage
 import com.example.kielibuddy.ui.pages.StudentDashBoard
 import com.example.kielibuddy.ui.pages.WelcomePage
 import com.example.kielibuddy.ui.screens.tutor.TutorHomeScreen.TutorDashboard
+import com.example.kielibuddy.viewmodel.AuthState
 import com.example.kielibuddy.viewmodel.AuthViewModel
 
 @Composable
 fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, activity: Activity) {
     val navController = rememberNavController()
-
+    val authState by authViewModel.authState.observeAsState()
     // Call checkAuthStatus when app starts
     LaunchedEffect(Unit) {
         authViewModel.checkAuthStatus(navController)
+    }
+
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Unauthenticated -> {
+                navController.navigate("login") {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            else -> Unit
+        }
     }
 
     NavHost(navController = navController, startDestination = "welcome") {
@@ -43,13 +58,16 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
         composable("home") {
             HomePage(modifier, navController, authViewModel)
         }
+        composable("completeSignup") {
+            SignupCompletePage(navController = navController, authViewModel = authViewModel)
+        }
 
         composable("studentHome") {
-            StudentDashBoard(modifier, navController, authViewModel)
+            StudentDashBoard(navController = navController, authViewModel = authViewModel)
         }
 
         composable("tutorHome") {
-            TutorDashboard(modifier, navController, authViewModel)
+            TutorDashboard(navController = navController, authViewModel = authViewModel)
         }
     }
 }

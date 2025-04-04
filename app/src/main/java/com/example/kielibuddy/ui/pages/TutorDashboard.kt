@@ -7,6 +7,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,9 +20,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.kielibuddy.viewmodel.AuthViewModel
+import com.google.firebase.auth.FirebaseAuth
+import coil.compose.rememberAsyncImagePainter
+import com.example.kielibuddy.model.UserModel
 
 @Composable
 fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
+
+    val userData by authViewModel.userData.observeAsState()
+
+    LaunchedEffect(Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null && userData == null) {
+            authViewModel.loadUserData(uid)
+        }
+    }
+
+    if (userData == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -27,8 +50,14 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Tutor Profile
+        TextButton(onClick = {
+            authViewModel.signout()
+        }) {
+            Text(text = "Sign out")
+        }
+
         TutorProfile(
-            name = "Jenu Johm",
+            userData,
             languages = listOf("Finnish", "English"),
             rating = "4.5/5 ⭐"
         )
@@ -93,10 +122,10 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
 }
 
 @Composable
-fun TutorProfile(name: String, languages: List<String>, rating: String) {
+fun TutorProfile(user: UserModel?, languages: List<String>, rating: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
-            painter = painterResource(id = android.R.drawable.ic_menu_gallery),
+            painter = rememberAsyncImagePainter(user?.profileImg),
             contentDescription = "Tutor Profile",
             modifier = Modifier
                 .size(90.dp)
@@ -105,7 +134,7 @@ fun TutorProfile(name: String, languages: List<String>, rating: String) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(text = name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6A3DE2))
+        Text(text = (user?.firstName ?: "jas") + " " + (user?.lastName ?: ""), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6A3DE2))
         Text(text = "Languages: ${languages.joinToString(", ")}", fontSize = 14.sp, color = Color.Gray)
         Text(text = rating, fontSize = 16.sp, color = Color(0xFF4E2AB3))
     }

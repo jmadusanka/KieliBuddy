@@ -7,26 +7,58 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.viewmodel.AuthViewModel
+import com.google.firebase.auth.FirebaseAuth
+
+
 
 @Composable
 fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
+
+    val userData by authViewModel.userData.observeAsState()
+
+    LaunchedEffect(Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null && userData == null) {
+            authViewModel.loadUserData(uid)
+        }
+    }
+
+    if (userData == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
         // 🟢 Profile Section
-        ProfileSection()
+
+
+        println("JAS")
+        println(userData)
+
+        ProfileSection(userData)
+        TextButton(onClick = {
+            authViewModel.signout()
+        }) {
+            Text(text = "Sign out")
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -47,7 +79,7 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
 }
 
 @Composable
-fun ProfileSection() {
+fun ProfileSection(user: UserModel?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -56,7 +88,7 @@ fun ProfileSection() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = painterResource(id = android.R.drawable.ic_menu_gallery),
+            painter = rememberAsyncImagePainter(user?.profileImg),
             contentDescription = "Profile Picture",
             modifier = Modifier
                 .size(80.dp)
@@ -65,8 +97,8 @@ fun ProfileSection() {
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text("Mahesh Idangodage", fontSize = 20.sp, color = Color.White)
-            Text("Student", fontSize = 14.sp, color = Color.LightGray)
+            Text((user?.firstName ?: "jas") + " " + (user?.lastName ?: ""), fontSize = 20.sp, color = Color.White)
+            Text(user?.role.toString(), fontSize = 14.sp, color = Color.LightGray)
         }
     }
 }
