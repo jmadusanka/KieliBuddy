@@ -9,14 +9,19 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.kielibuddy.ui.Tutor.TutorDisplayCalendar
 import com.example.kielibuddy.ui.pages.EditableProfilePage
 import com.example.kielibuddy.ui.pages.ForgotPasswordPage
 import com.example.kielibuddy.ui.pages.HomePage
 import com.example.kielibuddy.ui.pages.LoginPage
+import com.example.kielibuddy.ui.pages.ProfileScreen
+import com.example.kielibuddy.ui.pages.SamplePageGallery
 import com.example.kielibuddy.ui.pages.SignupCompletePage
 
 import com.example.kielibuddy.ui.pages.SignupPage
+import com.example.kielibuddy.ui.pages.StudentChatScreen
 import com.example.kielibuddy.ui.pages.StudentDashBoard
+import com.example.kielibuddy.ui.pages.TutorListScreen
 import com.example.kielibuddy.ui.pages.WelcomePage
 import com.example.kielibuddy.ui.screens.tutor.TutorHomeScreen.TutorDashboard
 import com.example.kielibuddy.viewmodel.AuthState
@@ -72,6 +77,23 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
         }
         composable("editProfile") {
             EditableProfilePage(navController = navController, authViewModel = authViewModel)
+        }
+        composable("gallery") {
+            SamplePageGallery(navController = navController)
+        }
+
+        composable("chatScreen") {
+            StudentChatScreen(navController = navController)
+        }
+        composable("profile") {
+            ProfileScreen(navController = navController, authViewModel = authViewModel)
+        }
+
+        composable("list") {
+            TutorListScreen(navController = navController)
+        }
+        composable("calender") {
+            TutorDisplayCalendar(navController = navController)
         }
     }
 }

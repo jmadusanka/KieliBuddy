@@ -56,6 +56,15 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
             Text(text = "Sign out")
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { navController.navigate("gallery") },
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text("View Sample Pages")
+        }
+
         TutorProfile(
             userData,
             languages = listOf("Finnish", "English"),

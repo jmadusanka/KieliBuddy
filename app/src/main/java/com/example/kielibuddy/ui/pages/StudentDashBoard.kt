@@ -60,6 +60,15 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        Button(
+            onClick = { navController.navigate("gallery") },
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text("View Sample Pages")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // 🟣 Progress & Goals Section
         ProgressSection()
 
