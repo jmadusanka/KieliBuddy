@@ -326,6 +326,29 @@ class AuthViewModel : ViewModel() {
                 onFailure()
             }
     }
+
+    fun updateTutorProfileFields(fields: Map<String, Any>, onSuccess: () -> Unit, onFailure: () -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        fireStore.collection("users").document(uid).update(fields)
+            .addOnSuccessListener {
+                val updated = _userData.value?.copy(
+                    aboutMe = fields["aboutMe"] as? String ?: _userData.value?.aboutMe ?: "",
+                    countryOfBirth = fields["countryOfBirth"] as? String ?: _userData.value?.countryOfBirth ?: "",
+                    introVideoUrl = fields["introVideoUrl"] as? String ?: _userData.value?.introVideoUrl ?: "",
+                    price20Min = fields["price20Min"] as? Int ?: _userData.value?.price20Min ?: 0,
+                    price50Min = fields["price50Min"] as? Int ?: _userData.value?.price50Min ?: 0,
+                    languagesSpoken = fields["languagesSpoken"] as? List<String> ?: _userData.value?.languagesSpoken ?: emptyList(),
+                    birthday = fields["birthday"] as? String ?: _userData.value?.birthday ?: ""
+                )
+                _userData.value = updated
+                onSuccess()
+            }
+            .addOnFailureListener { onFailure() }
+    }
+
+    fun updateIntroVideo(videoUrl: String) {
+        _userData.value = _userData.value?.copy(introVideoUrl = videoUrl)
+    }
 }
 
 sealed class AuthState {

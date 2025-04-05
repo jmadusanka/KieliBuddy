@@ -30,9 +30,7 @@ fun SamplePageGallery(navController: NavController) {
             "List" to "list",
             "calender" to "calender",
             "Edit Profile" to "editProfile",
-
-
-
+            "Tutor Edit Profile" to "tutorEditProfile",
         )
 
         pageList.forEach { (title, route) ->

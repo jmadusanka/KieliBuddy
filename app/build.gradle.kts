@@ -60,6 +60,8 @@ dependencies {
     implementation(libs.play.services.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -73,4 +75,8 @@ dependencies {
     implementation(libs.play.services.location)
     implementation("com.google.android.gms:play-services-maps:19.1.0")
     implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation(libs.material3)
+    implementation("androidx.compose.material:material:1.7.8")
+    implementation("androidx.media3:media3-exoplayer:1.2.1")
+    implementation("androidx.media3:media3-ui:1.2.1")
 }

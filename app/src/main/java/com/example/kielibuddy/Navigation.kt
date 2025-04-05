@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.kielibuddy.ui.Tutor.TutorDisplayCalendar
 import com.example.kielibuddy.ui.pages.EditableProfilePage
+import com.example.kielibuddy.ui.pages.EditableTutorProfilePage
 import com.example.kielibuddy.ui.pages.ForgotPasswordPage
 import com.example.kielibuddy.ui.pages.HomePage
 import com.example.kielibuddy.ui.pages.LoginPage
@@ -104,6 +105,9 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
         }
         composable("tutorCalendar") {
             TutorDisplayCalendar(navController = navController)
+        }
+        composable("tutorEditProfile") {
+            EditableTutorProfilePage(navController = navController, authViewModel = authViewModel)
         }
     }
 }

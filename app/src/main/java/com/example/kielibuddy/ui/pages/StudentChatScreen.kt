@@ -26,6 +26,7 @@ import com.example.kielibuddy.ui.theme.KieliBuddyTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.material3.TextFieldDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,11 +130,6 @@ fun StudentChatScreen(
                     .weight(1f)
                     .clip(RoundedCornerShape(24.dp)),
                 placeholder = { Text("Type your message...") },
-                colors = TextFieldDefaults.textFieldColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
                 singleLine = false,
                 maxLines = 3
             )

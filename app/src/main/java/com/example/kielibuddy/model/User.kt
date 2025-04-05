@@ -10,7 +10,29 @@ data class UserModel(
     val role: UserRole = UserRole.STUDENT,
     val status: Int = 1, // 1 = active, 0 = inactive
     val createdAt: Long = System.currentTimeMillis(),
-    val profileCompleted: Boolean = false
+    val profileCompleted: Boolean = false,
+    val birthDate: String = "",
+    val langLevel : List<String> = emptyList(),
+    val aboutMe: String = "",
+
+    // Tutor-specific fields
+    val introVideoUrl: String = "",
+    val countryOfBirth: String = "",
+    val isVerified: Boolean = false,
+    val price20Min: Int = 0,
+    val price50Min: Int = 0,
+    val reviews: List<String> = emptyList(),
+    val lessonCount: Int = 0,
+    val languagesSpoken: List<String> = emptyList(),
+    val birthday: String = "" // format: YYYY-MM-DD
+)
+
+data class Certification(
+    val id: String = "",
+    val userId: String = "",
+    val title: String = "",
+    val fileUrl: String = "",
+    val isVerified: Boolean = false
 )
 
 // Enum for user role
