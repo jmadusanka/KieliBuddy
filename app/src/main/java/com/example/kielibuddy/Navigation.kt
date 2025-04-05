@@ -95,5 +95,15 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
         composable("calender") {
             TutorDisplayCalendar(navController = navController)
         }
+        //  bottom navigation routes
+        composable("search") {
+            TutorListScreen(navController = navController)
+        }
+        composable("studentChat") {
+            StudentChatScreen(navController = navController)
+        }
+        composable("tutorCalendar") {
+            TutorDisplayCalendar(navController = navController)
+        }
     }
 }
