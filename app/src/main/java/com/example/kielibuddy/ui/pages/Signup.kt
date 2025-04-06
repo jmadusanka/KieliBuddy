@@ -78,6 +78,7 @@ fun SignupPage(
             .fillMaxSize()
             .background(Color(0xFF8A2BE2))
             .verticalScroll(scrollState)
+            .padding(WindowInsets.ime.asPaddingValues()) //keyboard overlay issue fixed
     ) {
         Box(
             modifier = Modifier
@@ -175,6 +176,7 @@ fun SignupPage(
                     firstNameError = false
                 },
                 label = { Text("First Name") },
+                singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 4.dp),
@@ -208,6 +210,7 @@ fun SignupPage(
                     lastNameError = false
                 },
                 label = { Text("Last Name") },
+                singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 4.dp),
@@ -241,6 +244,7 @@ fun SignupPage(
                     emailError = false
                 },
                 label = { Text("Email") },
+                singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 4.dp),

@@ -78,7 +78,7 @@ fun ForgotPasswordPage(
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
-                // Email field - No underline in any state
+                // Email field
                 TextField(
                     value = email,
                     onValueChange = {
@@ -86,6 +86,7 @@ fun ForgotPasswordPage(
                         emailError = false
                     },
                     label = { Text("Email") },
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 4.dp),

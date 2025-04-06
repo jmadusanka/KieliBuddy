@@ -105,6 +105,7 @@ fun LoginPage(
                             emailError = false
                         },
                         label = { Text("Email") },
+                        singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
