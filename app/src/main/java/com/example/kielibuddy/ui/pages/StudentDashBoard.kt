@@ -81,7 +81,7 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
 
         // 🔵 Recommended Tutors Section
         Text("Recommended Tutors", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-        TutorListScreen(modifier = Modifier, navController = navController)
+        TutorListScreen(modifier = Modifier, navController = navController, authViewModel = authViewModel)
     }
 }
 

@@ -6,10 +6,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.ui.Tutor.TutorDisplayCalendar
+import com.example.kielibuddy.ui.pages.ChatScreen
 import com.example.kielibuddy.ui.pages.EditableProfilePage
 import com.example.kielibuddy.ui.pages.EditableTutorProfilePage
 import com.example.kielibuddy.ui.pages.ForgotPasswordPage
@@ -27,11 +30,15 @@ import com.example.kielibuddy.ui.pages.WelcomePage
 import com.example.kielibuddy.ui.screens.tutor.TutorHomeScreen.TutorDashboard
 import com.example.kielibuddy.viewmodel.AuthState
 import com.example.kielibuddy.viewmodel.AuthViewModel
+import com.example.kielibuddy.viewmodel.ChatViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.kielibuddy.ui.pages.ChatInbox
 
 @Composable
 fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, activity: Activity) {
     val navController = rememberNavController()
     val authState by authViewModel.authState.observeAsState()
+    val chatViewModel: ChatViewModel = viewModel()
     // Call checkAuthStatus when app starts
     LaunchedEffect(Unit) {
         authViewModel.checkAuthStatus(navController)
@@ -83,31 +90,54 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
             SamplePageGallery(navController = navController)
         }
 
-        composable("chatScreen") {
-            StudentChatScreen(navController = navController)
-        }
+//        composable("chatScreen") {
+//            StudentChatScreen(navController = navController)
+//        }
         composable("profile") {
             ProfileScreen(navController = navController, authViewModel = authViewModel)
         }
 
         composable("list") {
-            TutorListScreen(navController = navController)
+            TutorListScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("calender") {
             TutorDisplayCalendar(navController = navController)
         }
         //  bottom navigation routes
         composable("search") {
-            TutorListScreen(navController = navController)
+            TutorListScreen(navController = navController, authViewModel = authViewModel)
         }
-        composable("studentChat") {
-            StudentChatScreen(navController = navController)
-        }
+
         composable("tutorCalendar") {
             TutorDisplayCalendar(navController = navController)
         }
         composable("tutorEditProfile") {
             EditableTutorProfilePage(navController = navController, authViewModel = authViewModel)
         }
+
+
+        composable("chat/{receiverId}/{receiverName}") { backStackEntry ->
+            val receiverId = backStackEntry.arguments?.getString("receiverId") ?: ""
+            val receiverName = backStackEntry.arguments?.getString("receiverName") ?: ""
+
+            ChatScreen(
+                navController = navController,
+                chatViewModel = chatViewModel,
+                receiverId = receiverId,
+                receiverName = receiverName,
+                receiverRole = UserRole.TEACHER // or fetch dynamically if needed
+            )
+        }
+
+        composable("inbox") {
+            ChatInbox(
+                navController = navController,
+                chatViewModel = chatViewModel,
+                currentUser = authViewModel.userData.value!! // 👈 Make sure this is available
+            )
+        }
+
     }
 }
+
+

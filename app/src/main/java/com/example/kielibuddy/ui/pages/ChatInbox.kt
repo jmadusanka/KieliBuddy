@@ -1,4 +1,3 @@
-// ChatInbox.kt
 package com.example.kielibuddy.ui.pages
 
 import androidx.compose.foundation.background
@@ -11,35 +10,41 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.example.kielibuddy.model.ChatConversation
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.ui.components.BottomNavigationBar
-import com.example.kielibuddy.ui.theme.KieliBuddyTheme
+import com.example.kielibuddy.viewmodel.ChatViewModel
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatInbox(
     navController: NavController,
-    currentUser: UserModel,
-    conversations: List<ChatConversation> = emptyList() // Should come from ViewModel
+    chatViewModel: ChatViewModel,
+    currentUser: UserModel
 ) {
+    val context = LocalContext.current
+    val conversations by chatViewModel.conversations.observeAsState(emptyList())
+
+    LaunchedEffect(Unit) {
+        chatViewModel.loadConversations(currentUser.id)
+    }
+
     Scaffold(
         topBar = {
-            // Header
             TopAppBar(
                 title = {
                     Text(
@@ -68,7 +73,6 @@ fun ChatInbox(
             )
         },
         bottomBar = {
-            // Bottom navigation bar
             BottomNavigationBar(navController = navController)
         }
     ) { innerPadding ->
@@ -146,7 +150,6 @@ fun ConversationItem(
             .padding(vertical = 12.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        //  profile image or initial
         ProfileAvatar(
             profileImg = conversation.otherUserProfileImg,
             userName = conversation.otherUserName
@@ -170,7 +173,6 @@ private fun ProfileAvatar(
             .background(Color(0xFF9370DB).copy(alpha = 0.2f)),
         contentAlignment = Alignment.Center
     ) {
-
         Text(
             text = userName.take(1).uppercase(),
             style = MaterialTheme.typography.titleLarge.copy(
@@ -261,76 +263,5 @@ private fun Long.toRelativeTime(): String {
         diff < 86400000 -> "${diff / 3600000}h ago"
         diff < 604800000 -> "${diff / 86400000}d ago"
         else -> SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(this))
-    }
-}
-
-@Preview(name = "Student Inbox")
-@Composable
-fun StudentInboxPreview() {
-    KieliBuddyTheme {
-        ChatInbox(
-            navController = rememberNavController(),
-            currentUser = UserModel(
-                id = "student123",
-                firstName = "John",
-                lastName = "Doe",
-                role = UserRole.STUDENT
-            ),
-            conversations = listOf(
-                ChatConversation(
-                    id = "1",
-                    otherUserId = "tutor123",
-                    otherUserName = "Anna",
-                    otherUserRole = UserRole.TEACHER,
-                    lastMessage = "Sure! I can help you with Finnish grammar",
-                    lastMessageTime = System.currentTimeMillis() - 10000,
-                    unreadCount = 2
-                )
-            )
-        )
-    }
-}
-
-@Preview(name = "Tutor Inbox")
-@Composable
-fun TutorInboxPreview() {
-    KieliBuddyTheme {
-        ChatInbox(
-            navController = rememberNavController(),
-            currentUser = UserModel(
-                id = "tutor123",
-                firstName = "Anna",
-                lastName = "Korpela",
-                role = UserRole.TEACHER
-            ),
-            conversations = listOf(
-                ChatConversation(
-                    id = "1",
-                    otherUserId = "student123",
-                    otherUserName = "John Doe",
-                    otherUserRole = UserRole.STUDENT,
-                    lastMessage = "I need help with verb conjugation",
-                    lastMessageTime = System.currentTimeMillis() - 5000,
-                    unreadCount = 1
-                )
-            )
-        )
-    }
-}
-
-@Preview(name = "Empty Inbox")
-@Composable
-fun EmptyInboxPreview() {
-    KieliBuddyTheme {
-        ChatInbox(
-            navController = rememberNavController(),
-            currentUser = UserModel(
-                id = "student123",
-                firstName = "John",
-                lastName = "Doe",
-                role = UserRole.STUDENT
-            ),
-            conversations = emptyList()
-        )
     }
 }
