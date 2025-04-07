@@ -24,7 +24,7 @@ fun TimeSlotItem(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 0.5.dp, horizontal = 10.dp)
             .background(
                 color = when {
                     isSelected -> Color.Blue.copy(alpha = 0.3f) // Highlight selected slot
@@ -38,7 +38,7 @@ fun TimeSlotItem(
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable(enabled = slot.isAvailable) { onSelect() }
-            .padding(16.dp)
+            .padding(12.dp)
     ) {
         Text(
             text = slot.time, // Only show the start time

@@ -2,16 +2,15 @@ package com.example.kielibuddy.ui.Tutor
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -40,28 +39,27 @@ fun TutorDisplayCalendar(
 
     var currentMonth by remember { mutableStateOf(YearMonth.from(today)) }
     var selectedDate by remember { mutableStateOf(today) }
-
     val selectedTimeSlots = remember { mutableStateMapOf<LocalDate, List<TimeSlot>>() }
 
     fun getTimeSlotsForDate(date: LocalDate): List<TimeSlot> {
         return (8..21).map { hour ->
-            val isPastSlot = date.isEqual(today) && hour <= currentHour
-
+            val isPast = date == today && hour <= currentHour
             TimeSlot(
                 time = String.format("%02d:00 - %02d:00", hour, hour + 1),
                 startHour = hour,
-                isAvailable = !isPastSlot
+                isAvailable = !isPast
             )
         }
     }
 
-    val weekendBackgroundColor = Color(0xFFE6F7FF)
+    val weekendColor = Color(0xFFE6F7FF)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
+        // Month navigation
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -91,7 +89,6 @@ fun TutorDisplayCalendar(
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
-
                     )
                 }
 
@@ -101,14 +98,15 @@ fun TutorDisplayCalendar(
             }
         }
 
+        // Weekday headers
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            for (dayOfWeek in DayOfWeek.values()) {
-                val isWeekend = dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY
+            for (day in DayOfWeek.values()) {
+                val isWeekend = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
                 Text(
-                    text = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                    text = day.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
                     modifier = Modifier.width(40.dp),
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.SemiBold,
@@ -117,45 +115,46 @@ fun TutorDisplayCalendar(
             }
         }
 
+        // Calendar grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            val firstDayOfMonth = currentMonth.atDay(1)
-            val padding = firstDayOfMonth.dayOfWeek.value - 1
+            val firstDay = currentMonth.atDay(1)
+            val offset = firstDay.dayOfWeek.value - 1
 
-            items(padding) {
-                Box(modifier = Modifier.size(40.dp))
+            items(offset) {
+                Box(modifier = Modifier.size(40.dp)) // Empty cells for alignment
             }
 
             items(currentMonth.lengthOfMonth()) { day ->
                 val date = currentMonth.atDay(day + 1)
-                val isPastDate = date.isBefore(today)
+                val isPast = date.isBefore(today)
                 val isWeekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY
-                val isToday = date.isEqual(today)
+                val isToday = date == today
 
                 Box(
                     modifier = Modifier
                         .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
                         .background(
                             color = when {
                                 isToday -> Color(0xFFE3F2FD)
-                                isWeekend -> weekendBackgroundColor
+                                isWeekend -> weekendColor
                                 else -> Color.Transparent
                             }
                         )
                         .border(
-                            BorderStroke(
-                                width = if (date == selectedDate) 2.dp else 1.dp,
-                                color = when {
-                                    date == selectedDate -> Color.Blue
-                                    isToday -> Color.Blue.copy(alpha = 0.5f)
-                                    else -> Color.Transparent
-                                }
-                            )
+                            width = if (date == selectedDate) 2.dp else 1.dp,
+                            color = when {
+                                date == selectedDate -> Color.Blue
+                                isToday -> Color.Blue.copy(alpha = 0.5f)
+                                else -> Color.Transparent
+                            },
+                            shape = RoundedCornerShape(8.dp)
                         )
-                        .clickable(enabled = !isPastDate) {
-                            if (!isPastDate) selectedDate = date
+                        .clickable(enabled = !isPast) {
+                            if (!isPast) selectedDate = date
                         }
                         .padding(4.dp),
                     contentAlignment = Alignment.Center
@@ -165,7 +164,7 @@ fun TutorDisplayCalendar(
                         textAlign = TextAlign.Center,
                         fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                         color = when {
-                            isPastDate -> Color.Gray
+                            isPast -> Color.Gray
                             isWeekend -> Color.Blue.copy(alpha = 0.7f)
                             else -> Color.Black
                         }
@@ -174,38 +173,45 @@ fun TutorDisplayCalendar(
             }
         }
 
+        // Time slot section
         Spacer(modifier = Modifier.height(16.dp))
+
         Text(
             text = "Available Sessions for ${selectedDate.dayOfMonth} ${selectedDate.month.getDisplayName(TextStyle.FULL, Locale.getDefault())}",
             fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        val timeSlotsForSelectedDate by remember(selectedDate) {
+        val timeSlots by remember(selectedDate) {
             mutableStateOf(getTimeSlotsForDate(selectedDate))
         }
 
-        val currentSelectedSlots = selectedTimeSlots[selectedDate] ?: emptyList()
+        val currentSelected = selectedTimeSlots[selectedDate] ?: emptyList()
 
-        LazyColumn {
-            items(timeSlotsForSelectedDate) { slot ->
-                val isSlotSelected = currentSelectedSlots.any { it.time == slot.time }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxHeight()
+        ) {
+            items(timeSlots.size) { index ->
+                val slot = timeSlots[index]
+                val isSelected = currentSelected.any { it.time == slot.time }
 
                 TimeSlotItem(
                     slot = slot,
-                    isSelected = isSlotSelected,
+                    isSelected = isSelected,
                     onSelect = {
                         if (slot.isAvailable) {
-                            val currentSlots = selectedTimeSlots[selectedDate]?.toMutableList() ?: mutableListOf()
-
-                            if (isSlotSelected) {
-                                currentSlots.removeIf { it.time == slot.time }
+                            val updatedSlots = selectedTimeSlots[selectedDate]?.toMutableList() ?: mutableListOf()
+                            if (isSelected) {
+                                updatedSlots.removeIf { it.time == slot.time }
                             } else {
-                                currentSlots.add(slot)
+                                updatedSlots.add(slot)
                             }
-
-                            selectedTimeSlots[selectedDate] = currentSlots
-                            println("Selected time slots for $selectedDate: ${currentSlots.joinToString { it.time }}")
+                            selectedTimeSlots[selectedDate] = updatedSlots
+                            println("Selected slots for $selectedDate: ${updatedSlots.joinToString { it.time }}")
                         }
                     }
                 )
