@@ -5,15 +5,20 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        println("FCM Token: $token")
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        FirebaseFirestore.getInstance().collection("users")
+            .document(uid)
+            .update("fcmToken", token)
 
-        // TODO: Upload this token to Firestore
+        println("New token: $token")
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -23,6 +28,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val title = remoteMessage.notification?.title ?: "New Message"
         val body = remoteMessage.notification?.body ?: ""
         showNotification(title, body)
+        println("Message received: $title, $body")
     }
 
     private fun showNotification(title: String, message: String) {
@@ -49,4 +55,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
         manager.notify(1001, builder.build())
     }
+
+
+
 }

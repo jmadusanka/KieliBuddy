@@ -1,5 +1,6 @@
 package com.example.kielibuddy.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -7,10 +8,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.kielibuddy.model.ChatConversation
 import com.example.kielibuddy.model.ChatMessage
 import com.example.kielibuddy.model.UserRole
+import com.example.kielibuddy.util.sendPushNotification
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.*
 
 class ChatViewModel : ViewModel() {
@@ -53,6 +56,7 @@ class ChatViewModel : ViewModel() {
     }
 
     fun sendMessage(
+        context: Context,
         receiverId: String,
         receiverName: String,
         receiverRole: UserRole,
@@ -90,6 +94,17 @@ class ChatViewModel : ViewModel() {
         viewModelScope.launch {
             chatRef.set(chatUpdate)
             messageRef.set(message.toMap())
+
+            val token = getReceiverToken(receiverId)
+            if (token.isNotEmpty()) {
+                sendPushNotification(
+                    context = context,
+                    toToken = token,
+                    title = "New Message from ${sender.displayName ?: "User"}",
+                    message = messageText
+                )
+                println("Notification sent")
+            }
         }
     }
 
@@ -106,5 +121,10 @@ class ChatViewModel : ViewModel() {
                     _messages.value = msgs
                 }
             }
+    }
+
+    private suspend fun getReceiverToken(userId: String): String {
+        val doc = db.collection("users").document(userId).get().await()
+        return doc.getString("fcmToken") ?: ""
     }
 }

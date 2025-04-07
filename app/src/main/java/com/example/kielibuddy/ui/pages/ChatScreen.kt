@@ -75,6 +75,7 @@ fun ChatScreen(
             IconButton(onClick = {
                 if (messageInput.text.isNotBlank()) {
                     chatViewModel.sendMessage(
+                        context = navController.context,
                         receiverId = receiverId,
                         receiverName = receiverName,
                         receiverRole = receiverRole,

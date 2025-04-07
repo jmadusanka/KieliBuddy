@@ -27,6 +27,7 @@ import com.facebook.CallbackManager
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.auth.User
 import com.example.kielibuddy.repository.UserRepository
+import com.google.firebase.messaging.FirebaseMessaging
 
 
 class AuthViewModel : ViewModel() {
@@ -349,6 +350,15 @@ class AuthViewModel : ViewModel() {
     fun updateIntroVideo(videoUrl: String) {
         _userData.value = _userData.value?.copy(introVideoUrl = videoUrl)
     }
+
+    fun updateFcmToken(userId: String) {
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            FirebaseFirestore.getInstance().collection("users")
+                .document(userId)
+                .update("fcmToken", token)
+        }
+    }
+
 }
 
 sealed class AuthState {
