@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,20 +26,33 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.UserModel
+import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.ui.components.BackButton
+import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
     val userData by authViewModel.userData.observeAsState()
+    val tutors = remember { mutableStateOf(emptyList<UserModel>()) }
 
     LaunchedEffect(Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null && userData == null) {
             authViewModel.loadUserData(uid)
         }
+
+        val db = FirebaseFirestore.getInstance()
+        val result = db.collection("users")
+            .whereEqualTo("role", UserRole.TEACHER.name)
+            .limit(3)
+            .get().await()
+            .mapNotNull { it.toObject(UserModel::class.java) }
+        tutors.value = result
     }
 
     if (userData == null) {
@@ -48,93 +62,111 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
         return
     }
 
-    // Main Layout
-    Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            modifier = Modifier.height(56.dp),
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.White,
-                titleContentColor = Color.White,
-                navigationIconContentColor = Color.White,
-                actionIconContentColor = Color.White
-            ),
-            navigationIcon = {
-                BackButton(navController = navController)
-            },
-            title = {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "Student Dashboard",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                }
-            }
-        )
-
-        ProfileSectionWithMenu(userData, navController, authViewModel)
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { navController.navigate("gallery") },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Text("View Sample Pages")
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                ProgressSection()
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Upcoming Lesson", fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold, color = Color.Black,
-                    modifier = Modifier.padding(10.dp)
-                )
-            }
-
-            item {
-                ScheduleSection(navController)
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Recommended Tutors",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                    )
-                    Button(
-                        onClick = { navController.navigate("list") },
-                        shape = RoundedCornerShape(50),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.LightGray,
-                            contentColor = Color.Black
+    Scaffold(
+        bottomBar = { BottomNavigationBar(navController = navController) }
+    ) { paddingValues ->
+        Column(modifier = modifier.padding(paddingValues).fillMaxSize()) {
+            TopAppBar(
+                modifier = Modifier.height(56.dp),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                ),
+                navigationIcon = {
+                    BackButton(navController = navController)
+                },
+                title = {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            "Student Dashboard",
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(12.dp)
                         )
+                    }
+                }
+            )
+
+            ProfileSectionWithMenu(userData, navController, authViewModel)
+
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    ProgressSection()
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Upcoming Lesson", fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold, color = Color.Black,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
+
+                item {
+                    ScheduleSection(navController)
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("All")
+                        Text(
+                            text = "Recommended Tutors",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                        )
+                        Button(
+                            onClick = { navController.navigate("list") },
+                            shape = RoundedCornerShape(50),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.LightGray,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text("View All")
+                        }
+                    }
+                }
+
+                items(tutors.value) { tutor ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(text = "${tutor.firstName} ${tutor.lastName}", fontWeight = FontWeight.Bold)
+                            Text(text = tutor.aboutMe ?: "", fontSize = 12.sp, color = Color.Gray)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = {
+                                navController.navigate("chat/${tutor.id}/${tutor.firstName}")
+                            }) {
+                                Text("Chat")
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun ProfileSectionWithMenu(user: UserModel?, navController: NavController, authViewModel: AuthViewModel) {
@@ -197,6 +229,15 @@ fun ProfileSectionWithMenu(user: UserModel?, navController: NavController, authV
                     },
                     leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = "Sign Out") }
                 )
+                DropdownMenuItem(
+                    text = { Text("View Sample Pages") },
+                    onClick = {
+                        menuExpanded = false
+                        navController.navigate("gallery")
+                    },
+                    leadingIcon = { Icon(Icons.Default.Menu, contentDescription = "Sample page") }
+                )
+
             }
         }
     }

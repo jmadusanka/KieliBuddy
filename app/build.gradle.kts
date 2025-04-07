@@ -79,4 +79,5 @@ dependencies {
     implementation("androidx.compose.material:material:1.7.8")
     implementation("androidx.media3:media3-exoplayer:1.2.1")
     implementation("androidx.media3:media3-ui:1.2.1")
+    implementation ("com.google.firebase:firebase-messaging:23.2.1")
 }

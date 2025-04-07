@@ -26,7 +26,7 @@ sealed class BottomNavItem(
     val title: String
 ) {
     object Search : BottomNavItem("search", R.drawable.ic_search, "Search")
-    object Chat : BottomNavItem("studentChat", R.drawable.ic_messages, "Messages")
+    object Chat : BottomNavItem("inbox", R.drawable.ic_messages, "Messages")
     object Calendar : BottomNavItem("tutorCalendar", R.drawable.ic_schedule, "Schedule")
 }
 
