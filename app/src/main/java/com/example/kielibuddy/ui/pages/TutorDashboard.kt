@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.UserModel
+import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -54,10 +55,17 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tutor Dashboard") },
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Dashboard")
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { /* Handle back navigation */ }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                       // Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
                 actions = {
@@ -68,18 +76,12 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("Sign out") },
-                            onClick = {
-                                showMenu = false
-                                authViewModel.signout()
-                            }
-                        )
+
                         DropdownMenuItem(
                             text = { Text("Edit Profile") },
                             onClick = {
                                 showMenu = false
-                                // TODO: Navigate to edit profile screen
+                                navController.navigate("tutorEditProfile")
                             }
                         )
                         DropdownMenuItem(
@@ -89,9 +91,19 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
                                 navController.navigate("gallery")
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text("Sign out") },
+                            onClick = {
+                                showMenu = false
+                                authViewModel.signout()
+                            }
+                        )
                     }
                 }
             )
+        },
+        bottomBar = {
+            BottomNavigationBar(navController = navController)
         }
     ) { paddingValues ->
         Column(
@@ -108,6 +120,16 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
                 languages = userData?.languagesSpoken ?: emptyList(),
                 rating = "4.5/5 ⭐"
             )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = { navController.navigate("profile") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4E2AB3))
+            ) {
+                Text("View Public Profile", color = Color.White)
+            }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 

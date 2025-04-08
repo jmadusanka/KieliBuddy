@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,11 +19,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.kielibuddy.R
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.viewmodel.AuthViewModel
@@ -44,7 +48,7 @@ fun TutorListScreen(
             "Lowest Price" -> tutors.sortedBy { it.price50Min }
             "Highest Price" -> tutors.sortedByDescending { it.price50Min }
             "Reviews" -> tutors.sortedByDescending { it.reviews.size }
-            else -> tutors // Default
+            else -> tutors
         }
     }
 
@@ -64,13 +68,11 @@ fun TutorListScreen(
                 fontSize = 22.sp,
                 color = Color.Black,
                 textAlign = TextAlign.Center
-
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Make the filter section
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -122,10 +124,13 @@ fun FilterChip(
 
 @Composable
 fun TutorCard(tutor: UserModel, navController: NavController) {
+    val previewText = tutor.aboutMe?.split("---")?.getOrNull(0)?.trim() ?: ""
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .clickable { navController.navigate("tutorPublicProfile") },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -145,9 +150,22 @@ fun TutorCard(tutor: UserModel, navController: NavController) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = tutor.firstName + " " + tutor.lastName, fontSize = 18.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = tutor.firstName + " " + tutor.lastName, fontSize = 18.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Verified",
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(18.dp)
+                    )
+
+                }
                 Text(text = "€${tutor.price50Min}/lesson", fontSize = 14.sp, color = Color.Black)
-                Text(text = tutor.aboutMe ?: "", fontSize = 12.sp, color = Color.Gray)
+                Text(text = previewText, fontSize = 12.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "⭐ 4.8 • 22 reviews", fontSize = 12.sp, color = Color.Gray) // Dummy data
+                Text(text = "🇫🇮 Native Speaker", fontSize = 12.sp, color = Color.DarkGray) // Dummy data
 
                 Spacer(modifier = Modifier.height(8.dp))
 

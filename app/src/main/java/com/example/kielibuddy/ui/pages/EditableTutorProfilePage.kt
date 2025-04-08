@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import coil.compose.rememberAsyncImagePainter
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +31,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 
@@ -39,6 +41,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.compose.ui.viewinterop.AndroidView
 import android.graphics.Color as AndroidColor
 
+@OptIn(UnstableApi::class)
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditableTutorProfilePage(navController: NavController, authViewModel: AuthViewModel) {
     val userData by authViewModel.userData.observeAsState()
@@ -99,126 +103,202 @@ fun EditableTutorProfilePage(navController: NavController, authViewModel: AuthVi
     }
 
     val scrollState = rememberScrollState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Edit Tutor Profile", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Box(contentAlignment = Alignment.TopEnd) {
-            Image(
-                painter = rememberAsyncImagePainter(userData?.profileImg),
-                contentDescription = "Profile Image",
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .clickable(enabled = !uploading) { launcher.launch("image/*") }
-            )
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Edit",
-                tint = Color.Gray,
-                modifier = Modifier
-                    .offset(x = (-8).dp, y = 8.dp)
-                    .size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(value = firstName, onValueChange = { firstName = it }, label = { Text("First Name") }, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Last Name") }, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(value = aboutMe, onValueChange = { aboutMe = it }, label = { Text("About Me") }, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(value = country, onValueChange = { country = it }, label = { Text("Country of Birth") }, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (introVideoUrl.isNotEmpty()) {
-            Text("Current Intro Video:", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            val exoPlayer = remember(context) {
-                ExoPlayer.Builder(context).build().apply {
-                    setMediaItem(MediaItem.fromUri(introVideoUrl))
-                    prepare()
-                    playWhenReady = false
-                }
-            }
-            DisposableEffect(Unit) {
-                onDispose { exoPlayer.release() }
-            }
-            AndroidView(factory = {
-                PlayerView(it).apply {
-                    this.player = exoPlayer
-                    this.useController = true
-                    this.setShutterBackgroundColor(AndroidColor.TRANSPARENT)
-                }
-            }, modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp))
-        }
-
-        Button(onClick = { videoLauncher.launch("video/*") }, modifier = Modifier.fillMaxWidth()) {
-            Text("Upload Intro Video")
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = price20,
-            onValueChange = { price20 = it },
-            label = { Text("Price for 20 min") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = price50,
-            onValueChange = { price50 = it },
-            label = { Text("Price for 50 min") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(value = languages, onValueChange = { languages = it }, label = { Text("Languages Spoken (comma-separated)") }, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(value = birthday, onValueChange = { birthday = it }, label = { Text("Birthday (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(onClick = {
-            val updates = mapOf(
-                "firstName" to firstName.text,
-                "lastName" to lastName.text,
-                "aboutMe" to aboutMe.text,
-                "countryOfBirth" to country.text,
-                "introVideoUrl" to introVideoUrl,
-                "price20Min" to (price20.text.toIntOrNull() ?: 0) as Any,
-                "price50Min" to (price50.text.toIntOrNull() ?: 0) as Any,
-                "languagesSpoken" to languages.text.split(",").map { it.trim() },
-                "birthday" to birthday.text
-            )
-            authViewModel.updateTutorProfileFields(updates,
-                onSuccess = {
-                    Toast.makeText(context, "Profile updated", Toast.LENGTH_SHORT).show()
-                    navController.popBackStack()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Edit Profile", color = Color.White)
+                    }
                 },
-                onFailure = {
-                    Toast.makeText(context, "Failed to update", Toast.LENGTH_SHORT).show()
-                })
-        }, modifier = Modifier.fillMaxWidth()) {
-            Text("Save Changes")
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF6A3DE2) // Match your app's purple
+                )
+            )
+        },
+        containerColor = Color(0xE6E0F5FF) // Full background matches theme
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Box(modifier = Modifier.size(110.dp), contentAlignment = Alignment.BottomEnd) {
+                Image(
+                    painter = rememberAsyncImagePainter(userData?.profileImg),
+                    contentDescription = "Profile Image",
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .clickable(enabled = !uploading) { launcher.launch("image/*") }
+                )
+                IconButton(
+                    onClick = { launcher.launch("image/*") },
+                    modifier = Modifier
+                        .size(28.dp)
+                        .offset(x = (-4).dp, y = (-4).dp)
+                        .background(Color.White, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = Color.Black
+                    )
+                }
+            }
+
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = firstName,
+                onValueChange = { firstName = it },
+                label = { Text("First Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = lastName,
+                onValueChange = { lastName = it },
+                label = { Text("Last Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = aboutMe,
+                onValueChange = { aboutMe = it },
+                label = { Text("About Me") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = country,
+                onValueChange = { country = it },
+                label = { Text("Country of Birth") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (introVideoUrl.isNotEmpty()) {
+                Text("Current Intro Video:", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                val exoPlayer = remember(context) {
+                    ExoPlayer.Builder(context).build().apply {
+                        setMediaItem(MediaItem.fromUri(introVideoUrl))
+                        prepare()
+                        playWhenReady = false
+                    }
+                }
+                DisposableEffect(Unit) {
+                    onDispose { exoPlayer.release() }
+                }
+                AndroidView(
+                    factory = {
+                        PlayerView(it).apply {
+                            this.player = exoPlayer
+                            this.useController = true
+                            this.setShutterBackgroundColor(AndroidColor.TRANSPARENT)
+                        }
+                    }, modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                )
+            }
+
+            Button(
+                onClick = { videoLauncher.launch("video/*") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Upload Intro Video")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = price20,
+                onValueChange = { price20 = it },
+                label = { Text("Price for 20 min") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = price50,
+                onValueChange = { price50 = it },
+                label = { Text("Price for 50 min") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = languages,
+                onValueChange = { languages = it },
+                label = { Text("Languages Spoken (comma-separated)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = birthday,
+                onValueChange = { birthday = it },
+                label = { Text("Birthday (YYYY-MM-DD)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(onClick = {
+                val updates = mapOf(
+                    "firstName" to firstName.text,
+                    "lastName" to lastName.text,
+                    "aboutMe" to aboutMe.text,
+                    "countryOfBirth" to country.text,
+                    "introVideoUrl" to introVideoUrl,
+                    "price20Min" to (price20.text.toIntOrNull() ?: 0) as Any,
+                    "price50Min" to (price50.text.toIntOrNull() ?: 0) as Any,
+                    "languagesSpoken" to languages.text.split(",").map { it.trim() },
+                    "birthday" to birthday.text
+                )
+                authViewModel.updateTutorProfileFields(updates,
+                    onSuccess = {
+                        Toast.makeText(context, "Profile updated", Toast.LENGTH_SHORT).show()
+                        navController.popBackStack()
+                    },
+                    onFailure = {
+                        Toast.makeText(context, "Failed to update", Toast.LENGTH_SHORT).show()
+                    })
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text("Save Changes")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = { navController.navigate("profile") }, // or navController.popBackStack()
+                colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cancel", color = Color.Black)
+            }
+
         }
     }
 }
