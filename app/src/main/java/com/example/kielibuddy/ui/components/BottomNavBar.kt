@@ -43,7 +43,6 @@ fun BottomNavigationBar(navController: NavController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar(
-        modifier = Modifier.height(56.dp),
         tonalElevation = 8.dp
     ) {
         items.forEach { item ->
