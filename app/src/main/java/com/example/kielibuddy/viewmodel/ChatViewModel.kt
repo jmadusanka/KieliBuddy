@@ -28,31 +28,38 @@ class ChatViewModel : ViewModel() {
     val messages: LiveData<List<ChatMessage>> = _messages
 
     fun loadConversations(currentUserId: String) {
-        db.collection("chats")
-            .whereArrayContains("participants", currentUserId)
-            .orderBy("lastMessageTime", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, _ ->
-                if (snapshot != null) {
-                    val conversations = snapshot.documents.mapNotNull { doc ->
-                        val otherUserId = (doc["participants"] as? List<*>)?.firstOrNull { it != currentUserId } as? String
-                        ChatConversation(
-                            id = doc.id,
-                            otherUserId = otherUserId ?: "",
-                            otherUserName = doc.getString("otherUserName") ?: "",
-                            otherUserRole = try {
-                                UserRole.valueOf(doc.getString("otherUserRole") ?: "STUDENT")
-                            } catch (e: Exception) {
-                                UserRole.STUDENT
-                            },
-                            lastMessage = doc.getString("lastMessage") ?: "",
-                            lastMessageTime = (doc.getLong("lastMessageTime") ?: 0L),
-                            unreadCount = (doc.getLong("unreadCount") ?: 0L).toInt(),
-                            otherUserProfileImg = doc.getString("otherUserProfileImg")
-                        )
+            db.collection("chats")
+                .whereArrayContains("participants", currentUserId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        return@addSnapshotListener
                     }
-                    _conversations.value = conversations
+
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        val conversations = snapshot.documents.mapNotNull { doc ->
+                            val participants = doc["participants"] as? List<*>
+                            val otherUserId = participants?.firstOrNull { it != currentUserId } as? String
+
+                            ChatConversation(
+                                id = doc.id,
+                                otherUserId = otherUserId ?: "",
+                                otherUserName = doc.getString("otherUserName") ?: "",
+                                otherUserRole = try {
+                                    UserRole.valueOf(doc.getString("otherUserRole") ?: "STUDENT")
+                                } catch (e: Exception) {
+                                    UserRole.STUDENT
+                                },
+                                lastMessage = doc.getString("lastMessage") ?: "",
+                                lastMessageTime = doc.getLong("lastMessageTime") ?: 0L,
+                                unreadCount = (doc.getLong("unreadCount") ?: 0L).toInt(),
+                                otherUserProfileImg = doc.getString("otherUserProfileImg")
+                            )
+                        }
+                        _conversations.value = conversations
+                    } else {
+                        _conversations.value = emptyList()
+                    }
                 }
-            }
     }
 
     fun sendMessage(
@@ -75,7 +82,7 @@ class ChatViewModel : ViewModel() {
             receiverId = receiverId,
             message = messageText,
             timestamp = timestamp,
-            senderRole = UserRole.STUDENT // or fetch from ViewModel if needed
+            senderRole = UserRole.STUDENT
         )
 
         val chatRef = db.collection("chats").document(chatId)
