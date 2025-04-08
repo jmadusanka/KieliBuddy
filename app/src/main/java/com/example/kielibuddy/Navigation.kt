@@ -23,7 +23,6 @@ import com.example.kielibuddy.ui.pages.SamplePageGallery
 import com.example.kielibuddy.ui.pages.SignupCompletePage
 
 import com.example.kielibuddy.ui.pages.SignupPage
-import com.example.kielibuddy.ui.pages.StudentChatScreen
 import com.example.kielibuddy.ui.pages.StudentDashBoard
 import com.example.kielibuddy.ui.pages.TutorListScreen
 import com.example.kielibuddy.ui.pages.WelcomePage
