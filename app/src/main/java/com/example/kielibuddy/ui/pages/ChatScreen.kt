@@ -1,5 +1,6 @@
 package com.example.kielibuddy.ui.pages
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.ChatMessage
 import com.example.kielibuddy.viewmodel.ChatViewModel
 import com.example.kielibuddy.model.UserRole
@@ -65,7 +67,7 @@ fun ChatScreen(
     ) {
         // TopAppBar with Back Button
         TopAppBar(
-            title = { Text("Chat with $receiverName", color = Color.White) },
+            title = {},
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
@@ -77,12 +79,34 @@ fun ChatScreen(
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color(0xFF9370DB),
-                titleContentColor = Color.White,
                 navigationIconContentColor = Color.White
             )
         )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF9370DB))
+                .padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Image(
+                painter = rememberAsyncImagePainter(
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Default_pfp.svg/1200px-Default_pfp.svg.png" // Replace with receiverProfileImg
+                ),
+                contentDescription = "Profile Image",
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(50))
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = receiverName,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White
+            )
+        }
 
-        // Message List (Reversed for correct ordering)
+        // Message List
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -122,7 +146,7 @@ fun ChatScreen(
             IconButton(
                 onClick = {
                     if (messageInput.text.isNotBlank()) {
-                        // 🔥 Original sendMessage logic (UNCHANGED)
+                        // l sendMessage logic
                         chatViewModel.sendMessage(
                             context = navController.context,
                             receiverId = receiverId,
@@ -185,7 +209,7 @@ fun MessageBubble(
             )
         }
 
-        // Timestamp (New Addition)
+        // Timestamp
         Text(
             text = message.timestamp.toChatTime(),
             style = MaterialTheme.typography.labelSmall,
