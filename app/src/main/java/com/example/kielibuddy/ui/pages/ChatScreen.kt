@@ -22,9 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.ChatMessage
-import com.example.kielibuddy.viewmodel.ChatViewModel
+import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
+import com.example.kielibuddy.viewmodel.ChatViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -36,18 +38,29 @@ fun ChatScreen(
     chatViewModel: ChatViewModel,
     receiverId: String,
     receiverName: String,
-    receiverRole: UserRole,
-    receiverProfileImg: String? = null
+    receiverRole: UserRole
 ) {
-    //  Original Firebase/ViewModel
     val currentUser = FirebaseAuth.getInstance().currentUser
     val chatId = listOf(currentUser?.uid ?: "", receiverId).sorted().joinToString("_")
     val messages by chatViewModel.messages.observeAsState(emptyList())
     var messageInput by remember { mutableStateOf(TextFieldValue()) }
 
-    // Auto-scroll to bottom when new messages arrive
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    // 🔥 Fetch receiver's profile image dynamically
+    var receiverProfileUrl by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(receiverId) {
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(receiverId)
+            .get()
+            .addOnSuccessListener { document ->
+                val user = document.toObject(UserModel::class.java)
+                receiverProfileUrl = user?.profileImg
+            }
+    }
 
     LaunchedEffect(Unit) {
         chatViewModel.loadMessages(chatId)
@@ -59,29 +72,25 @@ fun ChatScreen(
         }
     }
 
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // TopAppBar with Back Button
         TopAppBar(
             title = {},
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = Color.White
                     )
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF9370DB),
-                navigationIconContentColor = Color.White
-            )
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF9370DB))
         )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -91,11 +100,12 @@ fun ChatScreen(
         ) {
             Image(
                 painter = rememberAsyncImagePainter(
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Default_pfp.svg/1200px-Default_pfp.svg.png" // Replace with receiverProfileImg
+                    model = receiverProfileUrl
+                        ?: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Default_pfp.svg/1200px-Default_pfp.svg.png"
                 ),
                 contentDescription = "Profile Image",
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(120.dp)
                     .clip(RoundedCornerShape(50))
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -106,7 +116,6 @@ fun ChatScreen(
             )
         }
 
-        // Message List
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -123,7 +132,6 @@ fun ChatScreen(
             }
         }
 
-        // Input Field (Rounded & Improved)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -146,14 +154,13 @@ fun ChatScreen(
             IconButton(
                 onClick = {
                     if (messageInput.text.isNotBlank()) {
-                        // l sendMessage logic
                         chatViewModel.sendMessage(
                             context = navController.context,
                             receiverId = receiverId,
                             receiverName = receiverName,
                             receiverRole = receiverRole,
                             messageText = messageInput.text,
-                            receiverProfileImg = receiverProfileImg
+                            receiverProfileImg = receiverProfileUrl
                         )
                         messageInput = TextFieldValue("")
                         coroutineScope.launch {
@@ -163,22 +170,14 @@ fun ChatScreen(
                 },
                 modifier = Modifier
                     .size(48.dp)
-                    .background(
-                        Color(0xFF9370DB),
-                        RoundedCornerShape(24.dp)
-                    )
+                    .background(Color(0xFF9370DB), RoundedCornerShape(24.dp))
             ) {
-                Icon(
-                    Icons.Filled.Send,
-                    contentDescription = "Send",
-                    tint = Color.White
-                )
+                Icon(Icons.Filled.Send, contentDescription = "Send", tint = Color.White)
             }
         }
     }
 }
 
-//  New MessageBubble UI (From StudentChatScreen)
 @Composable
 fun MessageBubble(
     message: ChatMessage,
@@ -192,10 +191,10 @@ fun MessageBubble(
         horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
     ) {
         Card(
-            shape = when {
-                isCurrentUser -> RoundedCornerShape(16.dp, 4.dp, 16.dp, 16.dp)
-                else -> RoundedCornerShape(4.dp, 16.dp, 16.dp, 16.dp)
-            },
+            shape = if (isCurrentUser)
+                RoundedCornerShape(16.dp, 4.dp, 16.dp, 16.dp)
+            else
+                RoundedCornerShape(4.dp, 16.dp, 16.dp, 16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (isCurrentUser) Color(0xFF9370DB)
                 else MaterialTheme.colorScheme.surfaceVariant,
@@ -209,7 +208,6 @@ fun MessageBubble(
             )
         }
 
-        // Timestamp
         Text(
             text = message.timestamp.toChatTime(),
             style = MaterialTheme.typography.labelSmall,
@@ -219,7 +217,6 @@ fun MessageBubble(
     }
 }
 
-// Timestamp formatter (New Addition)
 private fun Long.toChatTime(): String {
     return SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(this))
 }
