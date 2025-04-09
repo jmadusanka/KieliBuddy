@@ -1,6 +1,5 @@
 package com.example.kielibuddy.ui.components
 
-import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +18,8 @@ fun ReviewForm(
 ) {
     var rating by remember { mutableStateOf(0) }
     var comment by remember { mutableStateOf(TextFieldValue("")) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -42,6 +43,15 @@ fun ReviewForm(
             modifier = Modifier.fillMaxWidth()
         )
 
+        errorMessage?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
         Button(
             onClick = {
                 val review = Review(
@@ -57,9 +67,10 @@ fun ReviewForm(
                     onSuccess = {
                         rating = 0
                         comment = TextFieldValue("")
+                        errorMessage = null
                     },
-                    onError = { errorMessage ->
-                        Log.e("ReviewForm", "❌ Failed to submit review: $errorMessage")
+                    onError = { message ->
+                        errorMessage = message
                     }
                 )
             },
