@@ -81,4 +81,5 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.2.1")
     implementation("androidx.media3:media3-ui:1.2.1")
     implementation (libs.firebase.messaging)
+    implementation ("io.agora.rtc:full-sdk:4.5.1")
 }

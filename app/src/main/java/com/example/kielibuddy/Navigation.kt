@@ -32,6 +32,7 @@ import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.ChatViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kielibuddy.ui.pages.ChatInbox
+import com.example.kielibuddy.ui.pages.VideoCallScreen
 
 @Composable
 fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, activity: Activity) {
@@ -134,6 +135,11 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
                 chatViewModel = chatViewModel,
                 currentUser = authViewModel.userData.value!! // 👈 Make sure this is available
             )
+        }
+
+        composable("videoCall/{channelName}") { backStackEntry ->
+            val channelName = backStackEntry.arguments?.getString("channelName") ?: ""
+            VideoCallScreen( navController = navController,channelName = channelName, appId = "fb38ae85e9314c2487967b41fb8f9f65")
         }
 
     }

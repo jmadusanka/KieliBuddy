@@ -130,6 +130,14 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
                 Text("View Public Profile", color = Color.White)
             }
 
+            Button(
+                onClick = { navController.navigate("videoCall/lesson123") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4E2AB3))
+            ) {
+                Text("Join Video", color = Color.White)
+            }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 

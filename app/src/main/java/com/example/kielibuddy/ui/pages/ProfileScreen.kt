@@ -61,7 +61,7 @@ fun ProfileScreen(
             TopAppBar(
                 title = {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("Profile", textAlign = TextAlign.Center)
+                        Text("Profile", textAlign = TextAlign.Center, )
                     }
                 },
                 navigationIcon = {
