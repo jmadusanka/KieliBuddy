@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
@@ -29,8 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.kielibuddy.ui.screens.tutor.TutorHomeScreen.ReviewsCard
+import com.example.kielibuddy.ui.components.ReviewForm
+import com.example.kielibuddy.ui.components.ReviewList
 import com.example.kielibuddy.viewmodel.AuthViewModel
+import com.example.kielibuddy.viewmodel.ReviewViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +45,7 @@ fun ProfileScreen(
 ) {
     val userData by authViewModel.userData.observeAsState()
     val uid = FirebaseAuth.getInstance().currentUser?.uid
+    val reviewViewModel = remember { ReviewViewModel() }
 
     LaunchedEffect(uid) {
         if (uid != null && userData == null) {
@@ -55,6 +59,12 @@ fun ProfileScreen(
         }
         return
     }
+
+    LaunchedEffect(userData?.id) {
+        userData?.id?.let { reviewViewModel.loadReviews(it) }
+    }
+
+    val reviews by reviewViewModel.reviews.collectAsState()
 
     Scaffold(
         topBar = {
@@ -80,7 +90,9 @@ fun ProfileScreen(
                 .padding(horizontal = 16.dp)
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(bottom = 80.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 80.dp)
             ) {
                 item {
                     if (!userData?.introVideoUrl.isNullOrEmpty()) {
@@ -92,21 +104,28 @@ fun ProfileScreen(
                                     start()
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().height(200.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Image(
                             painter = rememberAsyncImagePainter(userData?.profileImg),
                             contentDescription = "Profile Picture",
-                            modifier = Modifier.size(70.dp).clip(CircleShape).border(2.dp, Color.Gray, CircleShape),
+                            modifier = Modifier
+                                .size(70.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, Color.Gray, CircleShape),
                             contentScale = ContentScale.Crop
                         )
 
@@ -120,7 +139,9 @@ fun ProfileScreen(
                     HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
@@ -167,13 +188,16 @@ fun ProfileScreen(
                         Text("See my schedule")
                     }
 
-                    ReviewsCard(
-                        reviews = listOf(
-                            "Great tutor! Helped me improve my Finnish quickly. ⭐⭐⭐⭐⭐",
-                            "Very patient and knowledgeable. Highly recommend! ⭐⭐⭐⭐⭐",
-                            "Fun lessons and great explanations. ⭐⭐⭐⭐"
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    userData?.id?.let { tutorId ->
+                        ReviewForm(
+                            tutorId = tutorId,
+                            reviewViewModel = reviewViewModel
                         )
-                    )
+
+                        ReviewList(reviews = reviews)
+                    }
                 }
             }
 
