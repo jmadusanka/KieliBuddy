@@ -1,37 +1,32 @@
 package com.example.kielibuddy.ui.pages
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.R
 import com.example.kielibuddy.model.UserModel
-import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import com.example.kielibuddy.ui.components.BackButton
+import kotlin.random.Random
 
 @Composable
 fun TutorListScreen(
@@ -39,15 +34,21 @@ fun TutorListScreen(
     navController: NavController,
     authViewModel: AuthViewModel
 ) {
-    val tutors = rememberTutorList()
-    val filterOptions = listOf("Default", "Lowest Price", "Highest Price", "Reviews")
-    val selectedFilter = remember { mutableStateOf(filterOptions[0]) }
+    var selectedFilter by remember { mutableStateOf("Default") }
+    var tutors by remember { mutableStateOf<List<UserModel>>(emptyList()) }
+    var expanded by remember { mutableStateOf(false) }
 
-    val filteredTutors = remember(tutors, selectedFilter.value) {
-        when (selectedFilter.value) {
+    LaunchedEffect(Unit) {
+        val snapshot = FirebaseFirestore.getInstance().collection("users").whereEqualTo("role", "TEACHER").get().await()
+        tutors = snapshot.documents.mapNotNull { doc -> doc.toObject(UserModel::class.java) }
+    }
+
+    val filteredTutors = remember(selectedFilter, tutors) {
+        when (selectedFilter) {
             "Lowest Price" -> tutors.sortedBy { it.price50Min }
             "Highest Price" -> tutors.sortedByDescending { it.price50Min }
-            "Reviews" -> tutors.sortedByDescending { it.reviews.size }
+            "Rating" -> tutors.sortedByDescending { Random.nextDouble(4.0, 5.0) }
+            "Reviews" -> tutors.sortedByDescending { Random.nextInt(20, 150) }
             else -> tutors
         }
     }
@@ -55,138 +56,105 @@ fun TutorListScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.Start
+            .background(Color(0xFFF9F7FF))
+            .padding(12.dp)
     ) {
+        Text("Finnish", fontSize = 36.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            BackButton(navController = navController)
-            Text(
-                text = "All Tutors",
-                fontSize = 22.sp,
-                color = Color.Black,
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            filterOptions.forEach { option ->
-                FilterChip(
-                    selected = selectedFilter.value == option,
-                    onClick = { selectedFilter.value = option },
-                    option = option
-                )
+            Text("${filteredTutors.size} tutors", color = Color.Gray, fontSize = 16.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Sort by relevance", fontSize = 14.sp)
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = Color.Black)
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    offset = DpOffset(x = 50.dp, y = 0.dp),
+                    modifier = Modifier
+                        .wrapContentWidth()
+                        .background(Color.White, RoundedCornerShape(8.dp))
+                ) {
+                    listOf("Default", "Lowest Price", "Highest Price", "Rating", "Reviews").forEach { filter ->
+                        DropdownMenuItem(
+                            text = { Text(filter) },
+                            onClick = { selectedFilter = filter; expanded = false }
+                        )
+                    }
+                }
             }
         }
-
+        Spacer(modifier = Modifier.height(8.dp))
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(filteredTutors) { tutor ->
-                TutorCard(tutor = tutor, navController = navController)
+                TutorCard(tutor, navController)
             }
-        }
-    }
-}
-
-@Composable
-fun FilterChip(
-    selected: Boolean,
-    onClick: () -> Unit,
-    option: String
-) {
-    Surface(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .clickable { onClick() },
-        color = if (selected) Color(0xFF6A3DE2) else Color.LightGray.copy(alpha = 0.3f)
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = option,
-                color = if (selected) Color.White else Color.Black,
-                fontSize = 14.sp
-            )
         }
     }
 }
 
 @Composable
 fun TutorCard(tutor: UserModel, navController: NavController) {
-    val previewText = tutor.aboutMe?.split("---")?.getOrNull(0)?.trim() ?: ""
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clickable { navController.navigate("profile") },
+            .padding(vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AsyncImage(
-                model = tutor.profileImg,
-                contentDescription = "Tutor Image",
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = tutor.firstName + " " + tutor.lastName, fontSize = 18.sp)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Verified",
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(18.dp)
-                    )
-
-                }
-                Text(text = "€${tutor.price50Min}/lesson", fontSize = 14.sp, color = Color.Black)
-                Text(text = previewText, fontSize = 12.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "⭐ 4.8 • 22 reviews", fontSize = 12.sp, color = Color.Gray) // Dummy data
-                Text(text = "🇫🇮 Native Speaker", fontSize = 12.sp, color = Color.DarkGray) // Dummy data
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Button(onClick = {
-                    navController.navigate("chat/${tutor.id}/${tutor.firstName}")
-                }) {
-                    Text("Chat Now")
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                val painter = rememberAsyncImagePainter(model = tutor.profileImg.ifEmpty { R.drawable.logo })
+                Image(
+                    painter = painter,
+                    contentDescription = "Tutor Profile Picture",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("${tutor.firstName} ${tutor.lastName}", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("€${tutor.price50Min}", fontSize = 18.sp)
+                        Text("⭐ ${String.format("%.1f", Random.nextDouble(4.0, 5.0))}", fontSize = 14.sp)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("60-min lesson", fontSize = 14.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            "${Random.nextInt(20, 150)} reviews",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.clickable { navController.navigate("reviews/${tutor.id}") }
+                        )
+                    }
                 }
             }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(tutor.aboutMe.ifEmpty { "No introduction provided yet." }, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("${tutor.lessonCount} lessons", fontSize = 14.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(8.dp))
+            val spokenLanguages = tutor.languagesSpoken.take(3).joinToString(", ") +
+                    if (tutor.languagesSpoken.size > 3) ", +${tutor.languagesSpoken.size - 3}" else ""
+            Text("Speaks $spokenLanguages", fontSize = 14.sp, color = Color.Gray)
         }
     }
-}
-
-@Composable
-fun rememberTutorList(): List<UserModel> {
-    val tutors = remember { mutableStateOf(emptyList<UserModel>()) }
-    LaunchedEffect(Unit) {
-        val db = FirebaseFirestore.getInstance()
-        val snapshot = db.collection("users").whereEqualTo("role", UserRole.TEACHER.name).get().await()
-        val result = snapshot.documents.mapNotNull { it.toObject(UserModel::class.java) }
-        tutors.value = result
-    }
-    return tutors.value
 }
