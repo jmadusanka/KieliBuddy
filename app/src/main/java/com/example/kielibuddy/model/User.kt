@@ -15,6 +15,14 @@ data class UserModel(
     val langLevel : List<String> = emptyList(),
     val aboutMe: String = "",
 
+    val nativeLanguage: String? = null,
+    val languageProficiency: String? = null,
+    val otherLanguages: String? = null,
+    val focusAreas: String? = null,
+    val background: String? = null,
+    val lessonPrefs: String? = null,
+    val completedLessons: Int? = 0,
+
     // Tutor-specific fields
     val introVideoUrl: String = "",
     val countryOfBirth: String = "",
