@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.R
 import com.example.kielibuddy.model.UserModel
+import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -59,7 +60,15 @@ fun TutorListScreen(
             .background(Color(0xFFF9F7FF))
             .padding(12.dp)
     ) {
-        Text("Finnish", fontSize = 36.sp, fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            BackButton(navController = navController)
+            Text("Finnish", fontSize = 36.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(48.dp))
+        }
         Spacer(modifier = Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -81,7 +90,7 @@ fun TutorListScreen(
                         .wrapContentWidth()
                         .background(Color.White, RoundedCornerShape(8.dp))
                 ) {
-                    listOf("Default", "Lowest Price", "Highest Price", "Rating", "Reviews").forEach { filter ->
+                    listOf("Lowest Price", "Highest Price", "Rating", "Reviews").forEach { filter ->
                         DropdownMenuItem(
                             text = { Text(filter) },
                             onClick = { selectedFilter = filter; expanded = false }
