@@ -142,7 +142,7 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
                 chatViewModel = chatViewModel,
                 receiverId = receiverId,
                 receiverName = receiverName,
-                receiverRole = UserRole.TEACHER // or fetch dynamically if needed
+                receiverRole = UserRole.TEACHER
             )
         }
 
@@ -150,13 +150,17 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
             ChatInbox(
                 navController = navController,
                 chatViewModel = chatViewModel,
-                currentUser = authViewModel.userData.value!! // 👈 Make sure this is available
+                currentUser = authViewModel.userData.value!!
             )
         }
 
         composable("videoCall/{channelName}") { backStackEntry ->
             val channelName = backStackEntry.arguments?.getString("channelName") ?: ""
-            VideoCallScreen( navController = navController,channelName = channelName, appId = "fb38ae85e9314c2487967b41fb8f9f65")
+            VideoCallScreen(
+                navController = navController,
+                channelName = channelName,
+                appId = "52d90b7c9c4e4416b229514e958b9c74"
+            )
         }
 
     }
