@@ -27,7 +27,8 @@ import java.util.*
 data class TimeSlot(
     val time: String,
     val startHour: Int,
-    val isAvailable: Boolean = true
+    val isAvailable: Boolean = true,
+    val endHour: Int
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,7 +51,8 @@ fun TutorDisplayCalendar(
             TimeSlot(
                 time = String.format("%02d:00 - %02d:00", hour, hour + 1),
                 startHour = hour,
-                isAvailable = !isPast
+                isAvailable = !isPast,
+                endHour = 12
             )
         }
     }
@@ -244,7 +246,6 @@ fun TutorDisplayCalendar(
                                         updatedSlots.add(slot)
                                     }
                                     selectedTimeSlots[selectedDate] = updatedSlots
-                                    println("Selected slots for $selectedDate: ${updatedSlots.joinToString { it.time }}")
                                 }
                             }
                         )
