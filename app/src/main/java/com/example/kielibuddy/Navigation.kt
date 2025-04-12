@@ -32,8 +32,10 @@ import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.ChatViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kielibuddy.ui.pages.ChatInbox
+import com.example.kielibuddy.ui.pages.StudentBookingCalendar
 import com.example.kielibuddy.ui.pages.StudentPublicProfileScreen
 import com.example.kielibuddy.ui.pages.StudentScheduleScreen
+import com.example.kielibuddy.ui.pages.TutorAvailability
 import com.example.kielibuddy.ui.pages.VideoCallScreen
 
 @Composable
@@ -123,6 +125,10 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
 
         composable("StudentScheduleScreen") {
             StudentScheduleScreen(navController = navController, authViewModel = authViewModel)
+        }
+
+        composable("StudentBookingCalendar") {
+            StudentBookingCalendar(navController = navController)
         }
 
 
