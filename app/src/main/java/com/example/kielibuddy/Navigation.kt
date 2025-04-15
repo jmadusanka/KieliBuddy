@@ -11,7 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.kielibuddy.model.UserRole
-import com.example.kielibuddy.ui.Tutor.TutorDisplayCalendar
+import com.example.kielibuddy.ui.tutor.TutorDisplayCalendar
 import com.example.kielibuddy.ui.pages.ChatScreen
 import com.example.kielibuddy.ui.pages.EditableProfilePage
 import com.example.kielibuddy.ui.pages.EditableTutorProfilePage

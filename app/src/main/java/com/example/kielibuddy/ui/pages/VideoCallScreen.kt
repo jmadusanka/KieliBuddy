@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import io.agora.rtc2.*
@@ -37,6 +38,7 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
     val maxCallDurationInMinutes = 20L
     var callActive by remember { mutableStateOf(false) }
     var isRemoteConnected by remember { mutableStateOf(false) }
+    val view = LocalView.current
 
     val rtcEventHandler = object : IRtcEngineEventHandler() {
         override fun onJoinChannelSuccess(channel: String?, uid: Int, elapsed: Int) {
@@ -84,6 +86,9 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 }
 
                 rtc.setupLocalVideo(VideoCanvas(localSurfaceView, VideoCanvas.RENDER_MODE_HIDDEN, 0))
+                rtc.enableAudio()
+                rtc.setEnableSpeakerphone(true)
+                rtc.muteLocalAudioStream(false)
                 rtc.startPreview()
                 rtc.joinChannel(null, channelName, null, 0)
 
@@ -107,6 +112,9 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 engine?.leaveChannel()
                 engine?.stopPreview()
                 RtcEngine.destroy()
+                // window reference is now defined within the correct scope
+                val window = (view.context as? android.app.Activity)?.window
+                window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 engine = null
                 navController.popBackStack()
             }
@@ -123,6 +131,10 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
     }
 
     DisposableEffect(Unit) {
+
+        val window = (view.context as? android.app.Activity)?.window
+        window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         onDispose {
             engine?.leaveChannel()
             engine?.stopPreview()
@@ -131,6 +143,8 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
             engine = null
         }
     }
+
+    var isSpeakerEnabled by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -211,6 +225,18 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
             ) {
                 Text("Switch Camera", color = Color.White)
+            }
+
+            Button(
+                onClick = {
+                    isSpeakerEnabled = !isSpeakerEnabled
+                    engine?.setEnableSpeakerphone(isSpeakerEnabled)
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSpeakerEnabled) Color.Cyan else Color.DarkGray
+                )
+            ) {
+                Text(if (isSpeakerEnabled) "Speaker On" else "Speaker Off", color = Color.White)
             }
         }
 

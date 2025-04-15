@@ -1,4 +1,4 @@
-package com.example.kielibuddy.ui.Tutor
+package com.example.kielibuddy.ui.tutor
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -12,14 +12,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.kielibuddy.repository.AvailabilityRepository
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.ui.pages.TimeSlotItem
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import java.time.*
 import java.time.format.TextStyle
 import java.util.*
@@ -44,6 +48,10 @@ fun TutorDisplayCalendar(
     var currentMonth by remember { mutableStateOf(YearMonth.from(today)) }
     var selectedDate by remember { mutableStateOf(today) }
     val selectedTimeSlots = remember { mutableStateMapOf<LocalDate, List<TimeSlot>>() }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val availabilityRepo = remember { AvailabilityRepository() }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     fun getTimeSlotsForDate(date: LocalDate): List<TimeSlot> {
         return (8..21).map { hour ->
@@ -52,14 +60,33 @@ fun TutorDisplayCalendar(
                 time = String.format("%02d:00 - %02d:00", hour, hour + 1),
                 startHour = hour,
                 isAvailable = !isPast,
-                endHour = 12
+                endHour = hour + 1
             )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
+        try {
+            val result = availabilityRepo.getTutorAvailability(uid)
+            val rebuilt = result.mapValues { entry ->
+                entry.value.mapNotNull { timeStr ->
+                    val parts = timeStr.split(" - ")
+                    val startHour = parts.getOrNull(0)?.split(":")?.getOrNull(0)?.toIntOrNull()
+                    val endHour = parts.getOrNull(1)?.split(":")?.getOrNull(0)?.toIntOrNull()
+                    if (startHour != null && endHour != null) {
+                        TimeSlot(timeStr, startHour, true, endHour)
+                    } else null
+                }
+            }
+            selectedTimeSlots.putAll(rebuilt)
+        } catch (e: Exception) {
+            snackbarHostState.showSnackbar("Failed to load saved availability.")
         }
     }
 
     val weekendColor = Color(0xFFE6F7FF)
 
-    // Use Scaffold for layout
     Scaffold(
         topBar = {
             TopAppBar(
@@ -77,11 +104,28 @@ fun TutorDisplayCalendar(
                         )
                     }
                 },
+                actions = {
+                    TextButton(onClick = {
+                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@TextButton
+                        val availabilityMap = selectedTimeSlots.mapValues { it.value.map { slot -> slot.time } }
+                        coroutineScope.launch {
+                            try {
+                                availabilityRepo.saveTutorAvailability(userId, availabilityMap)
+                                snackbarHostState.showSnackbar("Availability saved successfully.")
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Failed to save availability.")
+                            }
+                        }
+                    }) {
+                        Text("Save Availability")
+                    }
+                }
             )
         },
         bottomBar = {
             BottomNavigationBar(navController = navController)
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         content = { paddingValues ->
             Column(
                 modifier = modifier
@@ -215,7 +259,7 @@ fun TutorDisplayCalendar(
                     text = "Available Sessions for ${selectedDate.dayOfMonth} ${selectedDate.month.getDisplayName(TextStyle.FULL, Locale.getDefault())}",
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(vertical = 8.dp)
                 )
 
                 val timeSlots by remember(selectedDate) {
@@ -239,7 +283,7 @@ fun TutorDisplayCalendar(
                             isSelected = isSelected,
                             onSelect = {
                                 if (slot.isAvailable) {
-                                    val updatedSlots = selectedTimeSlots[selectedDate]?.toMutableList() ?: mutableListOf()
+                                    val updatedSlots = currentSelected.toMutableList()
                                     if (isSelected) {
                                         updatedSlots.removeIf { it.time == slot.time }
                                     } else {

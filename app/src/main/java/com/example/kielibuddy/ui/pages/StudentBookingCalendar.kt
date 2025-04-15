@@ -1,5 +1,6 @@
 package com.example.kielibuddy.ui.pages
 
+import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,14 +20,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.kielibuddy.ui.Tutor.TimeSlot // Assuming TimeSlot is defined here
+import com.example.kielibuddy.model.Booking
+import com.example.kielibuddy.model.BookingStatus
+import com.example.kielibuddy.ui.tutor.TimeSlot // Assuming TimeSlot is defined here
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
+import com.example.kielibuddy.viewmodel.BookingViewModel
+import com.google.firebase.auth.FirebaseAuth
 import java.time.*
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -57,6 +64,9 @@ fun StudentBookingCalendar(
     var selectedDate by remember { mutableStateOf(today) }
     var selectedTimeSlot by remember { mutableStateOf<TimeSlot?>(null) }
     var showConfirmationDialog by remember { mutableStateOf(false) }
+
+    val bookingViewModel: BookingViewModel = viewModel()
+    val context = LocalContext.current
 
     // Mock data
     val mockTutorAvailability = remember {
@@ -233,7 +243,6 @@ fun StudentBookingCalendar(
 
                 }
 
-                // Confirmation Dialog
                 if (showConfirmationDialog) {
                     AlertDialog(
                         onDismissRequest = { showConfirmationDialog = false },
@@ -245,8 +254,25 @@ fun StudentBookingCalendar(
                         },
                         confirmButton = {
                             Button(onClick = {
-                                showConfirmationDialog = false
-                                navController.navigate("booking_confirmation")
+                                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
+                                val booking = Booking(
+                                    id = UUID.randomUUID().toString(),
+                                    tutorId = mockTutorAvailability.tutorId,
+                                    studentId = currentUserId,
+                                    date = selectedDate.toString(),
+                                    timeSlot = selectedTimeSlot?.time ?: "",
+                                    status = BookingStatus.BOOKED
+                                )
+                                bookingViewModel.bookSession(
+                                    booking,
+                                    onSuccess = {
+                                        showConfirmationDialog = false
+                                        navController.navigate("booking_confirmation")
+                                    },
+                                    onError = {
+                                        Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                                    }
+                                )
                             },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2))
                             ) {
