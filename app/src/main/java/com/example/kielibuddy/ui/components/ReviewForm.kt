@@ -59,7 +59,7 @@ fun ReviewForm(
                     tutorId = tutorId,
                     studentId = currentUserId,
                     rating = rating,
-                    text = comment.text,
+                    comment = comment.text, //  store in `comment`
                     timestamp = System.currentTimeMillis()
                 )
                 reviewViewModel.submitReview(

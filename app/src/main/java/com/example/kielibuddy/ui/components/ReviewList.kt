@@ -9,7 +9,10 @@ import com.example.kielibuddy.model.Review
 
 @Composable
 fun ReviewList(reviews: List<Review>) {
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(top = 24.dp)) {
+
         Text(
             text = "Student Reviews",
             style = MaterialTheme.typography.titleMedium,
@@ -28,7 +31,7 @@ fun ReviewList(reviews: List<Review>) {
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("⭐".repeat(review.rating), style = MaterialTheme.typography.bodyLarge)
-                        Text(review.text, style = MaterialTheme.typography.bodyMedium)
+                        Text(review.comment, style = MaterialTheme.typography.bodyMedium) // ✅ use `comment`
                     }
                 }
             }

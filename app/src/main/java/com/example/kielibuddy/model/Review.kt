@@ -5,6 +5,6 @@ data class Review(
     val tutorId: String = "",
     val studentId: String = "",
     val rating: Int = 0,
-    val text: String = "",
-    val timestamp: Long = System.currentTimeMillis()
+    val comment: String = "",
+    val timestamp: Long = 0L
 )
