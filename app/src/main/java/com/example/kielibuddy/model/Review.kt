@@ -6,5 +6,6 @@ data class Review(
     val studentId: String = "",
     val rating: Int = 0,
     val comment: String = "",
-    val timestamp: Long = 0L
+    val timestamp: Long = 0L,
+    var studentName: String = ""
 )

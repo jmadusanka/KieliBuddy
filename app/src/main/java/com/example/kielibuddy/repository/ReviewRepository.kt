@@ -9,13 +9,22 @@ class ReviewRepository {
 
     // Fetch reviews for a specific tutor
     suspend fun getReviewsForTutor(tutorId: String): List<Review> {
+        val db = FirebaseFirestore.getInstance()
+
         return try {
-            db.collection("reviews")
+            val reviewsSnapshot = db.collection("reviews")
                 .whereEqualTo("tutorId", tutorId)
-                .orderBy("timestamp")
                 .get()
                 .await()
-                .documents.mapNotNull { it.toObject(Review::class.java) }
+
+            reviewsSnapshot.documents.mapNotNull { doc ->
+                val review = doc.toObject(Review::class.java)
+                review?.apply {
+                    // Fetch student name from users collection
+                    val studentDoc = db.collection("users").document(studentId).get().await()
+                    studentName = studentDoc.getString("firstName") ?: ""
+                }
+            }
         } catch (e: Exception) {
             emptyList()
         }
