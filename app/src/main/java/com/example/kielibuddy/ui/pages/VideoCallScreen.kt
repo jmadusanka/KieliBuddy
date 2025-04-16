@@ -8,6 +8,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -39,6 +41,7 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
     var callActive by remember { mutableStateOf(false) }
     var isRemoteConnected by remember { mutableStateOf(false) }
     val view = LocalView.current
+    var isSpeakerEnabled by remember { mutableStateOf(true) }
 
     val rtcEventHandler = object : IRtcEngineEventHandler() {
         override fun onJoinChannelSuccess(channel: String?, uid: Int, elapsed: Int) {
@@ -112,7 +115,6 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 engine?.leaveChannel()
                 engine?.stopPreview()
                 RtcEngine.destroy()
-                // window reference is now defined within the correct scope
                 val window = (view.context as? android.app.Activity)?.window
                 window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 engine = null
@@ -131,7 +133,6 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
     }
 
     DisposableEffect(Unit) {
-
         val window = (view.context as? android.app.Activity)?.window
         window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
@@ -144,8 +145,6 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
         }
     }
 
-    var isSpeakerEnabled by remember { mutableStateOf(true) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -156,10 +155,15 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
         Box(modifier = Modifier.weight(1f)) {
             if (joined) {
                 AndroidView(factory = { remoteSurfaceView }, modifier = Modifier.fillMaxSize())
-                AndroidView(factory = { localSurfaceView }, modifier = Modifier
-                    .size(120.dp)
-                    .align(Alignment.TopEnd)
-                    .padding(12.dp))
+
+
+                AndroidView(
+                    factory = { localSurfaceView },
+                    modifier = Modifier
+                        .size(100.dp)
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                )
             } else {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -168,6 +172,7 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                     Text("Waiting for other user to join...", color = Color.White)
                 }
             }
+
             if (!isRemoteConnected && joined) {
                 Text(
                     text = "🔁 Waiting for user to reconnect...",
@@ -177,6 +182,7 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                         .padding(8.dp)
                 )
             }
+
             localUid?.let { uid ->
                 Text(
                     text = "Local UID: $uid",
@@ -186,75 +192,103 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                         .padding(12.dp)
                 )
             }
+
+            if (callActive) {
+                Text(
+                    text = String.format("⏱ %02d:%02d",
+                        TimeUnit.SECONDS.toMinutes(callDuration),
+                        callDuration % 60),
+                    color = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), shape = MaterialTheme.shapes.small)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
 
-        if (callActive) {
-            Text(
-                text = String.format(
-                    "Call time: %02d:%02d",
-                    TimeUnit.SECONDS.toMinutes(callDuration),
-                    callDuration % 60
-                ),
-                color = Color.White,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .padding(bottom = 32.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
+            val buttonSize = 56.dp
+
+            IconButton(
                 onClick = {
                     isMicMuted = !isMicMuted
                     engine?.muteLocalAudioStream(isMicMuted)
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isMicMuted) Color.Gray else Color.Green
+                modifier = Modifier
+                    .size(buttonSize)
+                    .background(
+                        color = if (isMicMuted) Color.DarkGray else Color(0xFF4CAF50),
+                        shape = MaterialTheme.shapes.extraLarge
+                    )
+            ) {
+                Icon(
+                    imageVector = if (isMicMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                    contentDescription = "Mic",
+                    tint = Color.White
                 )
-            ) {
-                Text(if (isMicMuted) "Mic Off" else "Mic On", color = Color.White)
             }
 
-            Button(
-                onClick = {
-                    engine?.switchCamera()
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
+            IconButton(
+                onClick = { engine?.switchCamera() },
+                modifier = Modifier
+                    .size(buttonSize)
+                    .background(Color(0xFF2196F3), shape = MaterialTheme.shapes.extraLarge)
             ) {
-                Text("Switch Camera", color = Color.White)
+                Icon(
+                    imageVector = Icons.Default.Cameraswitch,
+                    contentDescription = "Switch Camera",
+                    tint = Color.White
+                )
             }
 
-            Button(
+            IconButton(
                 onClick = {
                     isSpeakerEnabled = !isSpeakerEnabled
                     engine?.setEnableSpeakerphone(isSpeakerEnabled)
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSpeakerEnabled) Color.Cyan else Color.DarkGray
-                )
+                modifier = Modifier
+                    .size(buttonSize)
+                    .background(
+                        color = if (isSpeakerEnabled) Color(0xFF00BCD4) else Color.DarkGray,
+                        shape = MaterialTheme.shapes.extraLarge
+                    )
             ) {
-                Text(if (isSpeakerEnabled) "Speaker On" else "Speaker Off", color = Color.White)
+                Icon(
+                    imageVector = if (isSpeakerEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                    contentDescription = "Speaker",
+                    tint = Color.White
+                )
             }
-        }
 
-        Button(
-            onClick = {
-                navController.popBackStack()
-                engine?.leaveChannel()
-                engine?.stopPreview()
-                RtcEngine.destroy()
-                Log.d("AGORA", "✅ End call & destroy")
-                engine = null
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-        ) {
-            Text("End Call", color = Color.White)
+            IconButton(
+                onClick = {
+                    navController.popBackStack()
+                    engine?.leaveChannel()
+                    engine?.stopPreview()
+                    RtcEngine.destroy()
+                    Log.d("AGORA", "✅ End call & destroy")
+                    engine = null
+                },
+                modifier = Modifier
+                    .size(buttonSize)
+                    .background(Color.Red, shape = MaterialTheme.shapes.extraLarge)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CallEnd,
+                    contentDescription = "End Call",
+                    tint = Color.White
+                )
+            }
         }
     }
 }
