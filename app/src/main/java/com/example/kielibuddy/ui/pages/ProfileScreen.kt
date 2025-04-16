@@ -13,12 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,34 +25,38 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.ui.components.ReviewForm
 import com.example.kielibuddy.ui.components.ReviewList
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.ReviewViewModel
-import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
     navController: NavController,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    tutorId: String? = null //  Used for viewing public tutor profile
 ) {
-    val userData by authViewModel.userData.observeAsState()
-    val uid = FirebaseAuth.getInstance().currentUser?.uid
     val reviewViewModel = remember { ReviewViewModel() }
+    var userData by remember { mutableStateOf<UserModel?>(null) }
 
-    LaunchedEffect(uid) {
-        if (uid != null && userData == null) {
-            authViewModel.loadUserData(uid)
+    LaunchedEffect(tutorId) {
+        if (tutorId != null) {
+            // Load public tutor profile from Firestore
+            val snapshot = FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(tutorId)
+                .get()
+                .await()
+            userData = snapshot.toObject(UserModel::class.java)
+        } else {
+            // Load current user's profile
+            userData = authViewModel.userData.value
         }
-    }
-
-    if (userData == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
     }
 
     LaunchedEffect(userData?.id) {
@@ -66,12 +65,19 @@ fun ProfileScreen(
 
     val reviews by reviewViewModel.reviews.collectAsState()
 
+    if (userData == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("Profile", textAlign = TextAlign.Center, )
+                        Text("Profile", textAlign = TextAlign.Center)
                     }
                 },
                 navigationIcon = {
@@ -165,7 +171,12 @@ fun ProfileScreen(
                     HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalAlignment = Alignment.Start) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
                         Text(text = "About me", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(text = userData?.aboutMe ?: "", style = MaterialTheme.typography.bodyMedium)
@@ -183,7 +194,9 @@ fun ProfileScreen(
                         shape = RoundedCornerShape(24.dp),
                         border = BorderStroke(1.dp, Color.Gray),
                         interactionSource = remember { MutableInteractionSource() },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
                     ) {
                         Text("See my schedule")
                     }
@@ -202,7 +215,10 @@ fun ProfileScreen(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(vertical = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(

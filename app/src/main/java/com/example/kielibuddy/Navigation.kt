@@ -163,6 +163,15 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
             )
         }
 
+        composable("tutorPublicProfile/{tutorId}") { backStackEntry ->
+            val tutorId = backStackEntry.arguments?.getString("tutorId") ?: ""
+            ProfileScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                tutorId = tutorId
+            )
+        }
+
     }
 }
 
