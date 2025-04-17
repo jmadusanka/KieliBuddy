@@ -62,13 +62,14 @@ fun TutorListScreen(
             .padding(12.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             BackButton(navController = navController)
-            Text("Finnish", fontSize = 36.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.width(48.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Finnish", fontSize = 28.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(8.dp))
         Row(
