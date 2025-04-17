@@ -101,11 +101,30 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
 
                 item {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "Upcoming Lesson", fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold, color = Color.Black,
-                        modifier = Modifier.padding(10.dp)
-                    )
+                    Row (modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween){
+                        Text(
+                            "Upcoming Lesson", fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold, color = Color.Black,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                        Button(
+                            onClick = { navController.navigate("StudentScheduleScreen") },
+                            shape = RoundedCornerShape(50),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.LightGray,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text("View All")
+                        }
+                    }
+
+
                 }
 
                 item {

@@ -63,11 +63,13 @@ fun StudentBookingCalendar(
 
     var availabilityMap by remember { mutableStateOf<Map<LocalDate, List<String>>>(emptyMap()) }
     var tutor by remember { mutableStateOf<UserModel?>(null) }
+    val bookings by bookingViewModel.studentBookings.collectAsState()
 
     LaunchedEffect(tutorId) {
         tutorId?.let {
             availabilityMap = availabilityRepo.getTutorAvailability(it)
             tutor = userRepo.getUserDetails(it)
+            bookingViewModel.loadStudentBookings(FirebaseAuth.getInstance().currentUser?.uid ?: "")
         }
     }
 
@@ -77,6 +79,18 @@ fun StudentBookingCalendar(
         val endOfWeek = currentWeekStartDate.plusDays(6)
         availabilityMap.keys.filter { !it.isBefore(currentWeekStartDate) && !it.isAfter(endOfWeek) }
     }
+
+    val bookedSlots = remember(selectedDate, bookings) {
+        bookings.filter {
+            it.tutorId == tutorId && it.date == selectedDate.toString()
+        }.map { it.timeSlot }
+    }
+
+    val availableTimeSlotsForDate = availabilityMap[selectedDate]?.mapIndexedNotNull { index, time ->
+        if (time !in bookedSlots) {
+            TimeSlot(time, index + 8, true, index + 9)
+        } else null
+    } ?: emptyList()
 
     Scaffold(
         topBar = {
@@ -190,9 +204,6 @@ fun StudentBookingCalendar(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text("Available Times", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
-                val availableTimeSlotsForDate = availabilityMap[selectedDate]?.mapIndexed { index, time ->
-                    TimeSlot(time, index + 8, true, index + 9)
-                } ?: emptyList()
 
                 if (availableTimeSlotsForDate.isEmpty()) {
                     Text("No available slots on this day.", color = Color.Gray)
@@ -246,16 +257,20 @@ fun StudentBookingCalendar(
                                     timeSlot = selectedTimeSlot?.time ?: "",
                                     status = com.example.kielibuddy.model.BookingStatus.BOOKED
                                 )
-                                bookingViewModel.bookSession(
-                                    booking,
-                                    onSuccess = {
-                                        showConfirmationDialog = false
-                                        navController.navigate("booking_confirmation")
-                                    },
-                                    onError = {
-                                        Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-                                    }
-                                )
+
+                                coroutineScope.launch {
+                                    bookingViewModel.bookSession(
+                                        booking,
+                                        onSuccess = {
+                                            Toast.makeText(context, "Booking confirmed!", Toast.LENGTH_SHORT).show()
+                                            showConfirmationDialog = false
+                                            navController.navigate("StudentScheduleScreen")
+                                        },
+                                        onError = {
+                                            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                                        }
+                                    )
+                                }
                             },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2))
                             ) {
