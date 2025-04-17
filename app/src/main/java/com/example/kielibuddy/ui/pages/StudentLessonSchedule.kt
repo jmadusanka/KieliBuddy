@@ -14,12 +14,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.R
+import com.example.kielibuddy.model.Booking
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.AuthViewModel
+import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -31,12 +34,14 @@ import java.time.format.DateTimeFormatter
 fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewModel) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userData by authViewModel.userData.observeAsState()
-    val schedule = remember { mutableStateListOf<LessonSchedule>() } // Placeholder for schedule data
-    val hasSchedule = schedule.isNotEmpty()
+    val bookingViewModel: BookingViewModel = viewModel()
+    val bookings by bookingViewModel.studentBookings.collectAsState()
 
     LaunchedEffect(currentUser?.uid) {
-        currentUser?.uid?.let { authViewModel.loadUserData(it) }
-        schedule.addAll(generateDummySchedule())
+        currentUser?.uid?.let {
+            authViewModel.loadUserData(it)
+            bookingViewModel.loadStudentBookings(it)
+        }
     }
 
     Scaffold(
@@ -46,14 +51,9 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
                     BackButton(navController = navController)
                 },
                 title = {
-                    Text(
-                        "Schedule",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 32.sp
-                    )
+                    Text("Schedule", fontWeight = FontWeight.Bold, fontSize = 32.sp)
                 },
                 actions = {
-                    // Display user's profile image if available
                     userData?.profileImg?.let { imageUrl ->
                         Image(
                             painter = rememberAsyncImagePainter(imageUrl),
@@ -63,7 +63,6 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
                                 .padding(end = 16.dp, top = 16.dp)
                         )
                     } ?: run {
-                        // Show a default placeholder if the profile image is not available
                         Image(
                             painter = painterResource(id = R.drawable.ic_schedule),
                             contentDescription = "Profile",
@@ -90,7 +89,7 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (hasSchedule) {
+            if (bookings.isNotEmpty()) {
                 Text(
                     "Your Upcoming Lessons",
                     fontWeight = FontWeight.SemiBold,
@@ -101,8 +100,8 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
                     color = Color.Black
                 )
                 LazyColumn {
-                    items(schedule) { lesson ->
-                        ScheduleItem(lesson = lesson)
+                    items(bookings.sortedBy { it.date }) { booking ->
+                        RealScheduleItem(booking)
                         Divider()
                     }
                 }
@@ -113,7 +112,7 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
                     modifier = Modifier.fillMaxSize()
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_messages), // Replace with your empty schedule icon
+                        painter = painterResource(id = R.drawable.ic_messages),
                         contentDescription = "No Schedule",
                         modifier = Modifier.size(120.dp),
                         colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.Gray.copy(alpha = 0.7f))
@@ -135,7 +134,7 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
                     Spacer(modifier = Modifier.height(32.dp))
                     Button(
                         onClick = {
-                            navController.navigate("list") // Navigate to the tutor list
+                            navController.navigate("list")
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF6A3DE2),
@@ -154,7 +153,7 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
 }
 
 @Composable
-fun ScheduleItem(lesson: LessonSchedule) {
+fun RealScheduleItem(booking: Booking) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -164,51 +163,16 @@ fun ScheduleItem(lesson: LessonSchedule) {
     ) {
         Column {
             Text(
-                text = lesson.tutorName,
+                text = "Lesson with ${booking.tutorId}",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "${lesson.dayOfWeek.name.toLowerCase().capitalize()} - ${lesson.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))} - ${lesson.time.format(DateTimeFormatter.ofPattern("HH:mm"))}",
+                text = "${booking.date} - ${booking.timeSlot}",
                 fontSize = 14.sp,
                 color = Color.Gray
             )
         }
-        // You can add more details or an icon here if needed
     }
 }
-
-// Dummy data generation
-fun generateDummySchedule(): List<LessonSchedule> {
-    val currentDate = LocalDate.now(java.time.ZoneId.of("Europe/Helsinki")) // Using current date in Oulu
-    return listOf(
-        LessonSchedule(
-            tutorName = "Alice Johnson",
-            dayOfWeek = DayOfWeek.MONDAY,
-            date = currentDate.plusDays(7), // Next Monday
-            time = LocalTime.of(10, 0)
-        ),
-        LessonSchedule(
-            tutorName = "Bob Williams",
-            dayOfWeek = DayOfWeek.WEDNESDAY,
-            date = currentDate.plusDays(9), // Next Wednesday
-            time = LocalTime.of(15, 30)
-        ),
-        LessonSchedule(
-            tutorName = "Charlie Brown",
-            dayOfWeek = DayOfWeek.FRIDAY,
-            date = currentDate.plusDays(11), // Next Friday
-            time = LocalTime.of(11, 0)
-        )
-        // Add more dummy lessons as needed
-    )
-}
-
-// Data class for Lesson Schedule
-data class LessonSchedule(
-    val tutorName: String,
-    val dayOfWeek: DayOfWeek,
-    val date: LocalDate,
-    val time: LocalTime
-)

@@ -11,7 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.kielibuddy.model.UserRole
-import com.example.kielibuddy.ui.tutor.TutorDisplayCalendar
+
 import com.example.kielibuddy.ui.pages.ChatScreen
 import com.example.kielibuddy.ui.pages.EditableProfilePage
 import com.example.kielibuddy.ui.pages.EditableTutorProfilePage
@@ -35,7 +35,7 @@ import com.example.kielibuddy.ui.pages.ChatInbox
 import com.example.kielibuddy.ui.pages.StudentBookingCalendar
 import com.example.kielibuddy.ui.pages.StudentPublicProfileScreen
 import com.example.kielibuddy.ui.pages.StudentScheduleScreen
-import com.example.kielibuddy.ui.pages.TutorAvailability
+import com.example.kielibuddy.ui.pages.TutorDisplayCalendar
 import com.example.kielibuddy.ui.pages.VideoCallScreen
 
 @Composable
@@ -131,8 +131,6 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
             StudentBookingCalendar(navController = navController)
         }
 
-
-
         composable("chat/{receiverId}/{receiverName}") { backStackEntry ->
             val receiverId = backStackEntry.arguments?.getString("receiverId") ?: ""
             val receiverName = backStackEntry.arguments?.getString("receiverName") ?: ""
@@ -171,6 +169,12 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
                 tutorId = tutorId
             )
         }
+
+        composable("StudentBooking/{tutorId}") { backStackEntry ->
+            val tutorId = backStackEntry.arguments?.getString("tutorId") ?: ""
+            StudentBookingCalendar(navController = navController, tutorId = tutorId)
+        }
+
 
     }
 }

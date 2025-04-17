@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,30 +28,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.Booking
-import com.example.kielibuddy.model.BookingStatus
-import com.example.kielibuddy.ui.tutor.TimeSlot // Assuming TimeSlot is defined here
+import com.example.kielibuddy.model.UserModel
+import com.example.kielibuddy.repository.AvailabilityRepository
+import com.example.kielibuddy.repository.UserRepository
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import java.time.*
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
-
-data class TutorAvailability(
-    val tutorId: String,
-    val tutorName: String,
-    val availableSlots: Map<LocalDate, List<TimeSlot>>
-)
-
-data class BookingConfirmation(
-    val tutorId: String,
-    val tutorName: String,
-    val date: LocalDate,
-    val timeSlot: TimeSlot
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,45 +55,27 @@ fun StudentBookingCalendar(
     var selectedDate by remember { mutableStateOf(today) }
     var selectedTimeSlot by remember { mutableStateOf<TimeSlot?>(null) }
     var showConfirmationDialog by remember { mutableStateOf(false) }
-
-    val bookingViewModel: BookingViewModel = viewModel()
     val context = LocalContext.current
+    val bookingViewModel: BookingViewModel = viewModel()
+    val coroutineScope = rememberCoroutineScope()
+    val availabilityRepo = remember { AvailabilityRepository() }
+    val userRepo = remember { UserRepository() }
 
-    // Mock data
-    val mockTutorAvailability = remember {
-        TutorAvailability(
-            tutorId = tutorId ?: "tutor1",
-            tutorName = "Sofia Müller",
-            availableSlots = mapOf(
-                today to listOf(
-                    TimeSlot(time = "09:00 - 10:00", startHour = 9, endHour = 10, isAvailable = true),
-                    TimeSlot(time = "10:00 - 11:00", startHour = 10, endHour = 11, isAvailable = true),
-                    TimeSlot(time = "11:00 - 12:00", startHour = 11, endHour = 12, isAvailable = true),
-                    TimeSlot(time = "14:00 - 15:00", startHour = 14, endHour = 15, isAvailable = true),
-                    TimeSlot(time = "15:00 - 16:00", startHour = 15, endHour = 16, isAvailable = true),
-                    TimeSlot(time = "16:00 - 17:00", startHour = 16, endHour = 17, isAvailable = true),
-                ),
-                today.plusDays(1) to emptyList(),
-                today.plusDays(2) to listOf(
-                    TimeSlot(time = "10:00 - 11:00", startHour = 10, endHour = 11, isAvailable = true),
-                    TimeSlot(time = "11:00 - 12:00", startHour = 11, endHour = 12, isAvailable = true),
-                    TimeSlot(time = "16:00 - 17:00", startHour = 16, endHour = 17, isAvailable = true),
-                ),
-                today.plusDays(5) to listOf(
-                    TimeSlot(time = "14:00 - 15:00", startHour = 14, endHour = 15, isAvailable = true),
-                    TimeSlot(time = "15:00 - 16:00", startHour = 15, endHour = 16, isAvailable = true)
-                ),
-                today.plusDays(6) to listOf(
-                    TimeSlot(time = "09:00 - 10:00", startHour = 9, endHour = 10, isAvailable = true),
-                    TimeSlot(time = "11:00 - 12:00", startHour = 11, endHour = 12, isAvailable = true)
-                )
-            )
-        )
+    var availabilityMap by remember { mutableStateOf<Map<LocalDate, List<String>>>(emptyMap()) }
+    var tutor by remember { mutableStateOf<UserModel?>(null) }
+
+    LaunchedEffect(tutorId) {
+        tutorId?.let {
+            availabilityMap = availabilityRepo.getTutorAvailability(it)
+            tutor = userRepo.getUserDetails(it)
+        }
     }
 
-    val availableDatesForWeek = remember(currentWeekStartDate, mockTutorAvailability) {
+    val tutorName = tutor?.let { "${it.firstName} ${it.lastName}" } ?: "Tutor"
+
+    val availableDatesForWeek = remember(currentWeekStartDate, availabilityMap) {
         val endOfWeek = currentWeekStartDate.plusDays(6)
-        mockTutorAvailability.availableSlots.keys.filter { !it.isBefore(currentWeekStartDate) && !it.isAfter(endOfWeek) }
+        availabilityMap.keys.filter { !it.isBefore(currentWeekStartDate) && !it.isAfter(endOfWeek) }
     }
 
     Scaffold(
@@ -123,7 +96,6 @@ fun StudentBookingCalendar(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Tutor Info
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -131,28 +103,40 @@ fun StudentBookingCalendar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = mockTutorAvailability.tutorName.first().toString().uppercase(),
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
+                    if (!tutor?.profileImg.isNullOrBlank()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(tutor!!.profileImg),
+                            contentDescription = "Tutor Profile",
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(CircleShape)
+                                .background(Color.White),
+                            contentScale = ContentScale.Crop
                         )
+                        Text(
+                            text = tutorName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = tutorName.first().toString().uppercase(),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                        }
                     }
-                    Text(
-                        text = "Book with ${mockTutorAvailability.tutorName}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+
                 }
 
-                // Weekly Calendar Navigation with "Today" Button
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -187,7 +171,6 @@ fun StudentBookingCalendar(
                     }
                 }
 
-                // Weekly Dates with Weekend Highlighting
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(horizontal = 8.dp)
@@ -206,9 +189,11 @@ fun StudentBookingCalendar(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Available Time Slots in Two Columns
                 Text("Available Times", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
-                val availableTimeSlotsForDate = mockTutorAvailability.availableSlots[selectedDate] ?: emptyList()
+                val availableTimeSlotsForDate = availabilityMap[selectedDate]?.mapIndexed { index, time ->
+                    TimeSlot(time, index + 8, true, index + 9)
+                } ?: emptyList()
+
                 if (availableTimeSlotsForDate.isEmpty()) {
                     Text("No available slots on this day.", color = Color.Gray)
                 } else {
@@ -230,7 +215,6 @@ fun StudentBookingCalendar(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Book Button
                 Button(
                     onClick = { showConfirmationDialog = true },
                     enabled = selectedTimeSlot != null && selectedTimeSlot?.isAvailable == true,
@@ -240,7 +224,6 @@ fun StudentBookingCalendar(
 
                 ) {
                     Text("Book Now", fontWeight = FontWeight.Bold)
-
                 }
 
                 if (showConfirmationDialog) {
@@ -249,7 +232,7 @@ fun StudentBookingCalendar(
                         title = { Text("Confirm Booking") },
                         text = {
                             Text(
-                                "Book ${selectedTimeSlot?.time} on ${selectedDate.format(DateTimeFormatter.ofPattern("d MMMM"))} with ${mockTutorAvailability.tutorName}?"
+                                "Book ${selectedTimeSlot?.time} on ${selectedDate.format(DateTimeFormatter.ofPattern("d MMMM"))} with $tutorName?"
                             )
                         },
                         confirmButton = {
@@ -257,11 +240,11 @@ fun StudentBookingCalendar(
                                 val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
                                 val booking = Booking(
                                     id = UUID.randomUUID().toString(),
-                                    tutorId = mockTutorAvailability.tutorId,
+                                    tutorId = tutorId ?: "",
                                     studentId = currentUserId,
                                     date = selectedDate.toString(),
                                     timeSlot = selectedTimeSlot?.time ?: "",
-                                    status = BookingStatus.BOOKED
+                                    status = com.example.kielibuddy.model.BookingStatus.BOOKED
                                 )
                                 bookingViewModel.bookSession(
                                     booking,
@@ -292,15 +275,21 @@ fun StudentBookingCalendar(
 }
 
 @Composable
-fun DateItem(date: LocalDate, isSelected: Boolean, hasSlots: Boolean, isWeekend: Boolean, onDateClick: (LocalDate) -> Unit) {
+fun DateItem(
+    date: LocalDate,
+    isSelected: Boolean,
+    hasSlots: Boolean,
+    isWeekend: Boolean,
+    onDateClick: (LocalDate) -> Unit
+) {
     val backgroundColor = if (isSelected) Color(0xFF6A3DE2).copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface
     val textColor = if (isSelected) Color.White else if (isWeekend) Color.Blue else Color.Black
     val fontWeight = if (LocalDate.now() == date) FontWeight.Bold else FontWeight.Normal
-
-
+    val isPast = date.isBefore(LocalDate.now())
 
     OutlinedButton(
-        onClick = { onDateClick(date) },
+        onClick = { if (!isPast) onDateClick(date) },
+        enabled = !isPast,
         shape = RoundedCornerShape(6.dp),
         border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray),
         colors = ButtonDefaults.outlinedButtonColors(containerColor = backgroundColor),
@@ -321,36 +310,3 @@ fun DateItem(date: LocalDate, isSelected: Boolean, hasSlots: Boolean, isWeekend:
     }
 }
 
-@Composable
-fun BookingConfirmationScreen(
-    navController: NavController,
-    bookingConfirmation: BookingConfirmation
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            Icons.Default.CheckCircle,
-            contentDescription = "Success",
-            tint = Color.Green,
-            modifier = Modifier.size(64.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Booking Confirmed!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("You have a session with ${bookingConfirmation.tutorName} on:", textAlign = TextAlign.Center)
-        Text(
-            "${bookingConfirmation.date.format(DateTimeFormatter.ofPattern("d MMMM"))} at ${bookingConfirmation.timeSlot.time}",
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.titleLarge
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-        Button(onClick = { navController.navigate("student_dashboard") }) {
-            Text("Back to Dashboard")
-        }
-    }
-}

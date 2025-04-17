@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kielibuddy.model.Booking
 import com.example.kielibuddy.repository.BookingRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class BookingViewModel : ViewModel() {
     private val repository = BookingRepository()
+    private val _studentBookings = MutableStateFlow<List<Booking>>(emptyList())
+    val studentBookings: StateFlow<List<Booking>> = _studentBookings
 
     fun bookSession(
         booking: Booking,
@@ -20,6 +24,17 @@ class BookingViewModel : ViewModel() {
                 onSuccess()
             } catch (e: Exception) {
                 onError(e.message ?: "Booking failed")
+            }
+        }
+    }
+
+    fun loadStudentBookings(studentId: String) {
+        viewModelScope.launch {
+            try {
+                val bookings = repository.getBookingsForStudent(studentId)
+                _studentBookings.value = bookings
+            } catch (e: Exception) {
+                _studentBookings.value = emptyList()
             }
         }
     }

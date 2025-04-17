@@ -189,7 +189,7 @@ fun ProfileScreen(
                     }
 
                     Button(
-                        onClick = { /* TODO: View Schedule */ },
+                        onClick = { navController.navigate("StudentBooking/${tutorId}") },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                         shape = RoundedCornerShape(24.dp),
                         border = BorderStroke(1.dp, Color.Gray),

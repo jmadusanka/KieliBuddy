@@ -1,4 +1,4 @@
-package com.example.kielibuddy.ui.tutor
+package com.example.kielibuddy.ui.pages
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -21,7 +21,6 @@ import androidx.navigation.NavController
 import com.example.kielibuddy.repository.AvailabilityRepository
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
-import com.example.kielibuddy.ui.pages.TimeSlotItem
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import java.time.*
