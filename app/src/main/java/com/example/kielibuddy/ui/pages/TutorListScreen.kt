@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,7 +78,10 @@ fun TutorListScreen(
         ) {
             Text("${filteredTutors.size} tutors", color = Color.Gray, fontSize = 16.sp)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Sort by relevance", fontSize = 14.sp)
+                Text(
+                    text = if (selectedFilter == "Default") "Sort by relevance" else "Sort by: $selectedFilter",
+                    fontSize = 14.sp
+                )
                 Spacer(modifier = Modifier.width(4.dp))
                 IconButton(onClick = { expanded = !expanded }) {
                     Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = Color.Black)
@@ -113,10 +117,9 @@ fun TutorCard(tutor: UserModel, navController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(250.dp)
             .padding(vertical = 8.dp)
-            .clickable {
-                navController.navigate("tutorPublicProfile/${tutor.id}")
-            },
+            .clickable { navController.navigate("tutorPublicProfile/${tutor.id}") },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -131,42 +134,64 @@ fun TutorCard(tutor: UserModel, navController: NavController) {
                         .size(80.dp)
                         .clip(RoundedCornerShape(8.dp))
                 )
+
                 Spacer(modifier = Modifier.width(16.dp))
+
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("${tutor.firstName} ${tutor.lastName}", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "${tutor.firstName} ${tutor.lastName}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("€${tutor.price50Min}", fontSize = 18.sp)
+                        Text("€${tutor.price50Min}", fontSize = 16.sp)
                         Text("⭐ ${String.format("%.1f", Random.nextDouble(4.0, 5.0))}", fontSize = 14.sp)
                     }
+
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("60-min lesson", fontSize = 14.sp, color = Color.Gray)
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("60-min lesson", fontSize = 12.sp, color = Color.Gray)
                         Text(
-                            "${Random.nextInt(20, 150)} reviews",
-                            fontSize = 14.sp,
+                            text = "${Random.nextInt(50, 150)} reviews",
+                            fontSize = 12.sp,
                             color = Color.Gray,
-                            modifier = Modifier.clickable { navController.navigate("reviews/${tutor.id}") }
+                            modifier = Modifier.clickable {
+                                navController.navigate("reviews/${tutor.id}")
+                            }
                         )
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(tutor.aboutMe.ifEmpty { "No introduction provided yet." }, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("${tutor.lessonCount} lessons", fontSize = 14.sp, color = Color.Gray)
+
             Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                tutor.aboutMe.ifEmpty { "No introduction provided yet." },
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("${tutor.lessonCount} lessons", fontSize = 13.sp, color = Color.Gray)
+
+            Spacer(modifier = Modifier.height(4.dp))
             val spokenLanguages = tutor.languagesSpoken.take(3).joinToString(", ") +
                     if (tutor.languagesSpoken.size > 3) ", +${tutor.languagesSpoken.size - 3}" else ""
-            Text("Speaks $spokenLanguages", fontSize = 14.sp, color = Color.Gray)
+            Text("Speaks $spokenLanguages", fontSize = 13.sp, color = Color.Gray)
         }
     }
 }
