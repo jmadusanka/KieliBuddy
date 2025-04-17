@@ -36,6 +36,7 @@ import com.example.kielibuddy.ui.pages.StudentBookingCalendar
 import com.example.kielibuddy.ui.pages.StudentPublicProfileScreen
 import com.example.kielibuddy.ui.pages.StudentScheduleScreen
 import com.example.kielibuddy.ui.pages.TutorDisplayCalendar
+import com.example.kielibuddy.ui.pages.TutorEarningsScreen
 import com.example.kielibuddy.ui.pages.VideoCallScreen
 
 @Composable
@@ -175,7 +176,9 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
             StudentBookingCalendar(navController = navController, tutorId = tutorId)
         }
 
-
+        composable("tutorEarnings") {
+            TutorEarningsScreen(navController = navController)
+        }
     }
 }
 

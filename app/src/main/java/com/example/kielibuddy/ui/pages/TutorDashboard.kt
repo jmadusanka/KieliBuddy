@@ -27,7 +27,9 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.ui.components.BottomNavigationBar
+import com.example.kielibuddy.ui.components.ReviewList
 import com.example.kielibuddy.viewmodel.AuthViewModel
+import com.example.kielibuddy.viewmodel.ReviewViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +37,8 @@ import com.google.firebase.auth.FirebaseAuth
 fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
 
     val userData by authViewModel.userData.observeAsState()
+    val reviewViewModel = remember { ReviewViewModel() }
+    val reviews by reviewViewModel.reviews.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
@@ -44,6 +48,11 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
             authViewModel.loadUserData(uid)
         }
     }
+
+    LaunchedEffect(userData?.id) {
+        userData?.id?.let { reviewViewModel.loadReviews(it) }
+    }
+
 
     if (userData == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -187,7 +196,7 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
 
             // Action Buttons
             Button(
-                onClick = { /* View Earnings */ },
+                onClick = { navController.navigate("tutorEarnings") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2))
             ) {
@@ -207,13 +216,7 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Reviews Section
-            ReviewsCard(
-                reviews = listOf(
-                    "Great tutor! Helped me improve my Finnish quickly. ⭐⭐⭐⭐⭐",
-                    "Very patient and knowledgeable. Highly recommend! ⭐⭐⭐⭐⭐",
-                    "Fun lessons and great explanations. ⭐⭐⭐⭐"
-                )
-            )
+            ReviewList(reviews = reviews)
         }
     }
 }
