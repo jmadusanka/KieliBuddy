@@ -28,6 +28,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.ui.components.ReviewList
+import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.ReviewViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -69,9 +70,13 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Dashboard")
+                        Text("Dashboard",color = Color.White)
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Purple40
+                ),
+
                 navigationIcon = {
                     IconButton(onClick = { /* Handle back navigation */ }) {
                        // Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -198,7 +203,7 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
             Button(
                 onClick = { navController.navigate("tutorEarnings") },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2))
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4E2AB3))
             ) {
                 Text(text = "View Earnings", color = Color.White)
             }

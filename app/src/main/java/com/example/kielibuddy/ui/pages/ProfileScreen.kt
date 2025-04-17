@@ -28,6 +28,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.ui.components.ReviewForm
 import com.example.kielibuddy.ui.components.ReviewList
+import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.ReviewViewModel
 import com.google.firebase.firestore.FirebaseFirestore
@@ -76,17 +77,27 @@ fun ProfileScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("Profile", textAlign = TextAlign.Center)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Profile", color = Color.White)
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                actions = {
+                    Spacer(modifier = Modifier.width(48.dp))
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Purple40
+                )
             )
+
+
         }
     ) { innerPadding ->
         Box(
