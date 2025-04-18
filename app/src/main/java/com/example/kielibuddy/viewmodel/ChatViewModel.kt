@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kielibuddy.model.ChatConversation
 import com.example.kielibuddy.model.ChatMessage
+import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.util.sendPushNotification
 import com.google.firebase.auth.FirebaseAuth
@@ -105,6 +106,23 @@ class ChatViewModel : ViewModel() {
         )
 
         viewModelScope.launch {
+            val senderSnapshot = db.collection("users").document(senderId).get().await()
+            val senderModel = senderSnapshot.toObject(UserModel::class.java)
+            val senderFullName = listOfNotNull(senderModel?.firstName, senderModel?.lastName).joinToString(" ")
+            val senderImg = senderModel?.profileImg
+
+            val chatUpdate = mapOf(
+                "participants" to listOf(senderId, receiverId),
+                "lastMessage" to messageText,
+                "lastMessageTime" to timestamp,
+                "senderId" to senderId,
+                "senderName" to senderFullName,
+                "senderProfileImg" to senderImg,
+                "receiverId" to receiverId,
+                "receiverName" to receiverName,
+                "receiverProfileImg" to receiverProfileImg
+            )
+
             chatRef.set(chatUpdate)
             messageRef.set(message.toMap())
 
@@ -113,11 +131,32 @@ class ChatViewModel : ViewModel() {
                 sendPushNotification(
                     context = context,
                     toToken = token,
-                    title = "New Message from ${sender.displayName ?: "User"}",
+                    title = "New Message from $senderFullName",
                     message = messageText
                 )
             }
-        }
+    }
+    }
+
+    fun markMessagesAsRead(chatId: String, currentUserId: String) {
+        val messagesRef = db.collection("chats")
+            .document(chatId)
+            .collection("messages")
+
+        messagesRef
+            .whereEqualTo("receiverId", currentUserId)
+            .whereEqualTo("status", "SENT")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                snapshot.documents.forEach { doc ->
+                    doc.reference.update("status", "READ")
+                }
+            }
+    }
+
+    fun markMessagesAsRead(chatId: String) {
+        db.collection("chats").document(chatId)
+            .update("unreadCount", 0)
     }
 
     fun loadMessages(chatId: String) {

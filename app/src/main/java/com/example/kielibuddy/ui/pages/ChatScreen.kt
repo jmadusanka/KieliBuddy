@@ -30,6 +30,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.kielibuddy.model.MessageStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,10 +48,10 @@ fun ChatScreen(
 
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-
-    // 🔥 Fetch receiver's profile image dynamically
     var receiverProfileUrl by remember { mutableStateOf<String?>(null) }
+    var fullReceiverName by remember { mutableStateOf(receiverName) }
 
+    // Fetch receiver's name and profile image
     LaunchedEffect(receiverId) {
         FirebaseFirestore.getInstance()
             .collection("users")
@@ -59,6 +60,7 @@ fun ChatScreen(
             .addOnSuccessListener { document ->
                 val user = document.toObject(UserModel::class.java)
                 receiverProfileUrl = user?.profileImg
+                fullReceiverName = listOfNotNull(user?.firstName, user?.lastName).joinToString(" ")
             }
     }
 
@@ -72,13 +74,37 @@ fun ChatScreen(
         }
     }
 
+    LaunchedEffect(chatId) {
+        chatViewModel.markMessagesAsRead(chatId, currentUserId = currentUser?.uid ?: "")
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
-            title = {},
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = rememberAsyncImagePainter(
+                            model = receiverProfileUrl
+                                ?: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Default_pfp.svg/1200px-Default_pfp.svg.png"
+                        ),
+                        contentDescription = "Profile Image",
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(50))
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = fullReceiverName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+
+                    )
+                }
+            },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
@@ -90,31 +116,6 @@ fun ChatScreen(
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF9370DB))
         )
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF9370DB))
-                .padding(vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Image(
-                painter = rememberAsyncImagePainter(
-                    model = receiverProfileUrl
-                        ?: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Default_pfp.svg/1200px-Default_pfp.svg.png"
-                ),
-                contentDescription = "Profile Image",
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(RoundedCornerShape(50))
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = receiverName,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White
-            )
-        }
 
         LazyColumn(
             modifier = Modifier
@@ -157,7 +158,7 @@ fun ChatScreen(
                         chatViewModel.sendMessage(
                             context = navController.context,
                             receiverId = receiverId,
-                            receiverName = receiverName,
+                            receiverName = fullReceiverName,
                             receiverRole = receiverRole,
                             messageText = messageInput.text,
                             receiverProfileImg = receiverProfileUrl
@@ -184,6 +185,18 @@ fun MessageBubble(
     isCurrentUser: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val isSeen = message.status.name == "READ"
+    val timestampColor = if (isCurrentUser)
+        Color.White.copy(alpha = 0.8f)
+    else
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+
+    val statusIcon = when (message.status) {
+        MessageStatus.SENT -> " ✓"
+        MessageStatus.READ -> " ✓✓"
+        else -> ""
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -209,7 +222,19 @@ fun MessageBubble(
         }
 
         Text(
-            text = message.timestamp.toChatTime(),
+            text = buildString {
+                append(message.timestamp.toChatTime())
+                if (isCurrentUser) {
+                    append(" ")
+                    append(
+                        when (message.status) {
+                            MessageStatus.READ -> "✓✓"
+                            MessageStatus.SENT -> "✓"
+                            else -> ""
+                        }
+                    )
+                }
+            },
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(top = 2.dp, start = 12.dp, end = 12.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)

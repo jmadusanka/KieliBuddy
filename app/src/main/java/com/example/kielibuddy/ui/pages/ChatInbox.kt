@@ -45,9 +45,6 @@ fun ChatInbox(
         chatViewModel.loadConversations(currentUser.id)
     }
 
-    println("Conversations: $conversations")
-    println("Current User: $currentUser")
-
     Scaffold(
         topBar = {
             TopAppBar(

@@ -20,9 +20,8 @@ class BookingRepository {
                 .get()
                 .await()
 
-            println("🔥 All bookings snapshot:")
             for (doc in snapshot.documents) {
-                println("📄 Booking: ${doc.id} => ${doc.data}")
+                //println("📄 Booking: ${doc.id} => ${doc.data}")
             }
 
             val filtered = snapshot.documents

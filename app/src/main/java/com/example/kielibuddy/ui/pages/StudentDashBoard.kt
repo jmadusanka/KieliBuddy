@@ -145,7 +145,6 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
                 }
 
                 item {
-                    println("studentBookings: $studentBookings")
                     ScheduleSection(navController = navController, bookings = studentBookings)
                 }
 

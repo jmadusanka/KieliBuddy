@@ -32,7 +32,6 @@ class BookingViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val bookings = repository.getBookingsForStudent(studentId)
-                println("Loaded bookings for student: $bookings")
                 _studentBookings.value = bookings
             } catch (e: Exception) {
                 _studentBookings.value = emptyList()

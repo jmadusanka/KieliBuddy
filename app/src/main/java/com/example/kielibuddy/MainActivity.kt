@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
 
         val authViewModel: AuthViewModel by viewModels()
         FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-            println("FCM Initial token: $token")
+            //println("FCM Initial token: $token")
         }
 
 

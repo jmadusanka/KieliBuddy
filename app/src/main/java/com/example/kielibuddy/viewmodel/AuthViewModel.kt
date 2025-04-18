@@ -44,15 +44,12 @@ class AuthViewModel : ViewModel() {
     val userData: LiveData<UserModel?> = _userData
 
     fun loadUserData(userId: String) {
-        println("📦 loadUserData() CALLED with userId: $userId")
 
         viewModelScope.launch {
             val user = repository.getUserDetails(userId)
             if (user != null) {
-                println("🎉 userData fetched from Firestore: $user")
                 _userData.value = user
             } else {
-                println("⚠️ userData is NULL from Firestore")
                 _authState.value = AuthState.Unauthenticated
             }
         }
@@ -237,7 +234,6 @@ class AuthViewModel : ViewModel() {
     }
 
     private fun navigateBasedOnRole(role: String, navController: NavController, userId: String) {
-        println("Role: $role")
         val destination = when (role.lowercase()) {
             "student" -> "studentHome"
             "teacher" -> "tutorHome"
