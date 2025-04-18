@@ -1,5 +1,6 @@
 package com.example.kielibuddy.ui.pages
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.ChatConversation
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
@@ -88,7 +90,8 @@ fun ChatInbox(
             if (conversations.isEmpty()) {
                 EmptyInboxState(currentUser.role)
             } else {
-                ConversationList(navController, conversations)
+                ConversationList(navController, conversations, currentUserId = currentUser.id)
+
             }
         }
     }
@@ -114,31 +117,7 @@ private fun EmptyInboxState(userRole: UserRole) {
     }
 }
 
-@Composable
-private fun ConversationList(
-    navController: NavController,
-    conversations: List<ChatConversation>
-) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp)
-    ) {
-        items(conversations) { conversation ->
-            ConversationItem(
-                conversation = conversation,
-                onClick = {
-                    navController.navigate("chat/${conversation.otherUserId}/${conversation.otherUserName}")
-                }
-            )
-            Divider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-            )
-        }
-    }
-}
+
 
 @Composable
 fun ConversationItem(
@@ -165,26 +144,77 @@ fun ConversationItem(
 }
 
 @Composable
+private fun ConversationList(
+    navController: NavController,
+    conversations: List<ChatConversation>,
+    currentUserId: String
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp)
+    ) {
+        items(conversations) { conversation ->
+
+            val isCurrentUserSender = conversation.senderId == currentUserId
+            val otherUserId = if (isCurrentUserSender) conversation.receiverId else conversation.senderId
+            val otherUserName = if (isCurrentUserSender) conversation.receiverName else conversation.senderName
+            val otherUserProfileImg = if (isCurrentUserSender) conversation.receiverProfileImg else conversation.senderProfileImg
+
+            ConversationItem(
+                conversation = conversation.copy(
+                    otherUserId = otherUserId,
+                    otherUserName = otherUserName,
+                    otherUserProfileImg = otherUserProfileImg
+                ),
+                onClick = {
+                    navController.navigate("chat/$otherUserId/$otherUserName")
+                }
+            )
+
+            Divider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+            )
+        }
+    }
+}
+
+
+@Composable
 private fun ProfileAvatar(
     profileImg: String?,
     userName: String
 ) {
-    Box(
-        modifier = Modifier
-            .size(56.dp)
-            .clip(CircleShape)
-            .background(Color(0xFF9370DB).copy(alpha = 0.2f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = userName.take(1).uppercase(),
-            style = MaterialTheme.typography.titleLarge.copy(
-                color = Color(0xFF9370DB),
-                fontWeight = FontWeight.Bold
-            )
+    if (!profileImg.isNullOrBlank()) {
+        Image(
+            painter = rememberAsyncImagePainter(profileImg),
+            contentDescription = "Profile Image",
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(Color.LightGray)
         )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF9370DB).copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = userName.take(1).uppercase(),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    color = Color(0xFF9370DB),
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        }
     }
 }
+
 
 @Composable
 private fun ConversationDetails(conversation: ChatConversation) {

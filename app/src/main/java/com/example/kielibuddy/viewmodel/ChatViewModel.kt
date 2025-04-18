@@ -28,38 +28,42 @@ class ChatViewModel : ViewModel() {
     val messages: LiveData<List<ChatMessage>> = _messages
 
     fun loadConversations(currentUserId: String) {
-            db.collection("chats")
-                .whereArrayContains("participants", currentUserId)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        return@addSnapshotListener
-                    }
-
-                    if (snapshot != null && !snapshot.isEmpty) {
-                        val conversations = snapshot.documents.mapNotNull { doc ->
-                            val participants = doc["participants"] as? List<*>
-                            val otherUserId = participants?.firstOrNull { it != currentUserId } as? String
-
-                            ChatConversation(
-                                id = doc.id,
-                                otherUserId = otherUserId ?: "",
-                                otherUserName = doc.getString("otherUserName") ?: "",
-                                otherUserRole = try {
-                                    UserRole.valueOf(doc.getString("otherUserRole") ?: "STUDENT")
-                                } catch (e: Exception) {
-                                    UserRole.STUDENT
-                                },
-                                lastMessage = doc.getString("lastMessage") ?: "",
-                                lastMessageTime = doc.getLong("lastMessageTime") ?: 0L,
-                                unreadCount = (doc.getLong("unreadCount") ?: 0L).toInt(),
-                                otherUserProfileImg = doc.getString("otherUserProfileImg")
-                            )
-                        }
-                        _conversations.value = conversations
-                    } else {
-                        _conversations.value = emptyList()
-                    }
+        db.collection("chats")
+            .whereArrayContains("participants", currentUserId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    return@addSnapshotListener
                 }
+
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val conversations = snapshot.documents.mapNotNull { doc ->
+                        val senderId = doc.getString("senderId") ?: return@mapNotNull null
+                        val receiverId = doc.getString("receiverId") ?: return@mapNotNull null
+
+                        val isCurrentUserSender = currentUserId == senderId
+
+                        ChatConversation(
+                            id = doc.id,
+                            senderId = senderId,
+                            senderName = doc.getString("senderName") ?: "",
+                            senderProfileImg = doc.getString("senderProfileImg"),
+                            receiverId = receiverId,
+                            receiverName = doc.getString("receiverName") ?: "",
+                            receiverProfileImg = doc.getString("receiverProfileImg"),
+                            lastMessage = doc.getString("lastMessage") ?: "",
+                            lastMessageTime = doc.getLong("lastMessageTime") ?: 0L,
+                            unreadCount = (doc.getLong("unreadCount") ?: 0L).toInt(),
+
+                            otherUserId = if (isCurrentUserSender) receiverId else senderId,
+                            otherUserName = if (isCurrentUserSender) doc.getString("receiverName") ?: "" else doc.getString("senderName") ?: "",
+                            otherUserProfileImg = if (isCurrentUserSender) doc.getString("receiverProfileImg") else doc.getString("senderProfileImg")
+                        )
+                    }
+                    _conversations.value = conversations
+                } else {
+                    _conversations.value = emptyList()
+                }
+            }
     }
 
     fun sendMessage(
@@ -92,10 +96,12 @@ class ChatViewModel : ViewModel() {
             "participants" to listOf(senderId, receiverId),
             "lastMessage" to messageText,
             "lastMessageTime" to timestamp,
-            "otherUserId" to receiverId,
-            "otherUserName" to receiverName,
-            "otherUserRole" to receiverRole.name,
-            "otherUserProfileImg" to receiverProfileImg
+            "senderId" to senderId,
+            "senderName" to (sender.displayName ?: "Student"),
+            "senderProfileImg" to sender.photoUrl?.toString(),
+            "receiverId" to receiverId,
+            "receiverName" to receiverName,
+            "receiverProfileImg" to receiverProfileImg
         )
 
         viewModelScope.launch {
@@ -110,7 +116,6 @@ class ChatViewModel : ViewModel() {
                     title = "New Message from ${sender.displayName ?: "User"}",
                     message = messageText
                 )
-                println("Notification sent")
             }
         }
     }
