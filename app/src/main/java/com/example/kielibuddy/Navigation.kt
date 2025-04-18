@@ -132,6 +132,11 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
             StudentBookingCalendar(navController = navController)
         }
 
+        composable("TutorScheduleScreen") {
+            StudentScheduleScreen(navController = navController, authViewModel = authViewModel, roleMode = UserRole.TEACHER)
+        }
+
+
         composable("chat/{receiverId}/{receiverName}") { backStackEntry ->
             val receiverId = backStackEntry.arguments?.getString("receiverId") ?: ""
             val receiverName = backStackEntry.arguments?.getString("receiverName") ?: ""

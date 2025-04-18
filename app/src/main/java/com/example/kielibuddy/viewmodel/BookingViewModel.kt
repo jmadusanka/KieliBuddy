@@ -39,4 +39,16 @@ class BookingViewModel : ViewModel() {
             }
         }
     }
+
+    fun loadTutorBookings(tutorId: String) {
+        viewModelScope.launch {
+            try {
+                val bookings = repository.getBookingsForTutor(tutorId)
+                _studentBookings.value = bookings
+            } catch (e: Exception) {
+                _studentBookings.value = emptyList()
+            }
+        }
+    }
+
 }

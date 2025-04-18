@@ -23,21 +23,25 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.R
 import com.example.kielibuddy.model.Booking
 import com.example.kielibuddy.model.UserModel
+import com.example.kielibuddy.model.UserRole
+import com.example.kielibuddy.repository.UserRepository
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.kielibuddy.repository.UserRepository
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewModel) {
+fun StudentScheduleScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    roleMode: UserRole = UserRole.STUDENT
+) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userData by authViewModel.userData.observeAsState()
     val bookingViewModel: BookingViewModel = viewModel()
@@ -46,9 +50,15 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
     LaunchedEffect(currentUser?.uid) {
         currentUser?.uid?.let {
             authViewModel.loadUserData(it)
-            bookingViewModel.loadStudentBookings(it)
+            if (roleMode == UserRole.TEACHER) {
+                bookingViewModel.loadTutorBookings(it)
+            } else {
+                bookingViewModel.loadStudentBookings(it)
+            }
         }
     }
+
+    val screenTitle = if (roleMode == UserRole.TEACHER) "My Upcoming Lessons" else "My Bookings"
 
     Scaffold(
         topBar = {
@@ -57,26 +67,7 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
                     BackButton(navController = navController)
                 },
                 title = {
-                    Text("My Bookings", fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                },
-                actions = {
-                    userData?.profileImg?.let { imageUrl ->
-                        Image(
-                            painter = rememberAsyncImagePainter(imageUrl),
-                            contentDescription = "Profile",
-                            modifier = Modifier
-                                .size(84.dp)
-                                .padding(end = 16.dp, top = 16.dp)
-                        )
-                    } ?: run {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_schedule),
-                            contentDescription = "Profile",
-                            modifier = Modifier
-                                .size(36.dp)
-                                .padding(end = 16.dp)
-                        )
-                    }
+                    Text(screenTitle, fontWeight = FontWeight.Bold, fontSize = 24.sp)
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -98,72 +89,34 @@ fun StudentScheduleScreen(navController: NavController, authViewModel: AuthViewM
             if (bookings.isNotEmpty()) {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(bookings.sortedBy { it.date }) { booking ->
-                        BookingCard(booking = booking)
+                        BookingCard(booking = booking, viewerRole = roleMode)
                     }
                 }
             } else {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_messages),
-                        contentDescription = "No Schedule",
-                        modifier = Modifier.size(120.dp),
-                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.Gray.copy(alpha = 0.7f))
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "No lessons scheduled yet!",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Book a lesson with a tutor to see your schedule here.",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(32.dp))
-                    Button(
-                        onClick = {
-                            navController.navigate("list")
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF6A3DE2),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 32.dp)
-                    ) {
-                        Text("Find a tutor", fontSize = 16.sp)
-                    }
-                }
+                Text("No lessons found.", color = Color.Gray)
             }
         }
     }
 }
 
 @Composable
-fun BookingCard(booking: Booking) {
+fun BookingCard(booking: Booking, viewerRole: UserRole) {
     val now = LocalTime.now()
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
     val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
     val showJoinButton = startTime != null && now.hour == startTime.hour
 
-    var tutor by remember { mutableStateOf<UserModel?>(null) }
+    var otherUser by remember { mutableStateOf<UserModel?>(null) }
     val userRepo = remember { UserRepository() }
 
-    LaunchedEffect(booking.tutorId) {
-        tutor = userRepo.getUserDetails(booking.tutorId)
+    val otherUserId = if (viewerRole == UserRole.STUDENT) booking.tutorId else booking.studentId
+
+    LaunchedEffect(otherUserId) {
+        otherUser = userRepo.getUserDetails(otherUserId)
     }
 
-    val tutorImage = tutor?.profileImg
-    val tutorName = tutor?.let { "${it.firstName} ${it.lastName}" } ?: booking.tutorId
+    val profileImg = otherUser?.profileImg
+    val fullName = otherUser?.let { "${it.firstName} ${it.lastName}" } ?: otherUserId
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -174,10 +127,10 @@ fun BookingCard(booking: Booking) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (!tutorImage.isNullOrBlank()) {
+            if (!profileImg.isNullOrBlank()) {
                 Image(
-                    painter = rememberAsyncImagePainter(tutorImage),
-                    contentDescription = "Tutor Image",
+                    painter = rememberAsyncImagePainter(profileImg),
+                    contentDescription = "Profile",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(56.dp)
@@ -192,14 +145,14 @@ fun BookingCard(booking: Booking) {
                         .background(Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(tutorName.first().toString(), color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(fullName.first().toString(), color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text("$tutorName", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("${if (viewerRole == UserRole.STUDENT) "Tutor" else "Student"}: $fullName", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text("Date: ${booking.date}", fontSize = 14.sp, color = Color.Gray)
                 Text("Time: ${booking.timeSlot}", fontSize = 14.sp, color = Color.Gray)
             }

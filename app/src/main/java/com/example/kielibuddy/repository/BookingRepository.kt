@@ -28,12 +28,22 @@ class BookingRepository {
             val filtered = snapshot.documents
                 .mapNotNull { it.toObject(Booking::class.java) }
                 .filter { it.studentId == studentId }
-
-            println("✅ Matched bookings for studentId=$studentId: ${filtered.size}")
             filtered
         } catch (e: Exception) {
-            println("❌ Error fetching bookings: ${e.message}")
             emptyList()
         }
     }
+
+    suspend fun getBookingsForTutor(tutorId: String): List<Booking> {
+        return try {
+            db.collection("bookings")
+                .whereEqualTo("tutorId", tutorId)
+                .get()
+                .await()
+                .documents.mapNotNull { it.toObject(Booking::class.java) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
 }

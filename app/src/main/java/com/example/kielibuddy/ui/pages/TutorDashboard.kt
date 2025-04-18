@@ -2,6 +2,7 @@ package com.example.kielibuddy.ui.screens.tutor.TutorHomeScreen
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -23,13 +24,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.kielibuddy.model.Booking
 import com.example.kielibuddy.model.UserModel
+import com.example.kielibuddy.repository.UserRepository
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.ui.components.ReviewList
 import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.viewmodel.AuthViewModel
+import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.example.kielibuddy.viewmodel.ReviewViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -38,6 +43,8 @@ import com.google.firebase.auth.FirebaseAuth
 fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
 
     val userData by authViewModel.userData.observeAsState()
+    val bookingViewModel: BookingViewModel = viewModel()
+    val tutorBookings by bookingViewModel.studentBookings.collectAsState()
     val reviewViewModel = remember { ReviewViewModel() }
     val reviews by reviewViewModel.reviews.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
@@ -45,13 +52,16 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
 
     LaunchedEffect(Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid != null && userData == null) {
+        if (uid != null) {
             authViewModel.loadUserData(uid)
         }
     }
 
     LaunchedEffect(userData?.id) {
-        userData?.id?.let { reviewViewModel.loadReviews(it) }
+        userData?.id?.let {
+            bookingViewModel.loadTutorBookings(it)
+            reviewViewModel.loadReviews(it)
+        }
     }
 
 
@@ -167,7 +177,8 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
 
             // Upcoming Lessons
             UpcomingLessonsCard(
-                lessons = listOf("Beginner Finnish - 10:00 AM", "Intermediate Finnish - 2:00 PM")
+                lessons = tutorBookings,
+                navController = navController
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -296,7 +307,24 @@ fun TutorProfile(user: UserModel?, languages: List<String>, rating: String) {
 }
 
 @Composable
-fun UpcomingLessonsCard(lessons: List<String>) {
+fun UpcomingLessonsCard(lessons: List<Booking>, navController: NavController) {
+    val topLessons = lessons.sortedBy { it.date }.take(2)
+    val userRepo = remember { UserRepository() }
+    val scope = rememberCoroutineScope()
+    val studentMap = remember { mutableStateMapOf<String, UserModel>() }
+
+    // Load student info
+    LaunchedEffect(topLessons) {
+        topLessons.forEach { booking ->
+            if (!studentMap.containsKey(booking.studentId)) {
+                val student = userRepo.getUserDetails(booking.studentId)
+                if (student != null) {
+                    studentMap[booking.studentId] = student
+                }
+            }
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -307,13 +335,62 @@ fun UpcomingLessonsCard(lessons: List<String>) {
         border = BorderStroke(1.dp, Color(0xFF6A3DE2))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Upcoming Lessons", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            lessons.forEach { lesson ->
-                Text(text = lesson, fontSize = 14.sp)
+            Row (modifier = Modifier
+                .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween){
+                Text(
+                    "Upcoming Lesson", fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold, color = Color.Black,
+                    modifier = Modifier.padding(10.dp)
+                )
+                Button(
+                    onClick = { navController.navigate("TutorScheduleScreen") },
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.LightGray,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text("View All")
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            topLessons.forEach { booking ->
+                val student = studentMap[booking.studentId]
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                    if (!student?.profileImg.isNullOrBlank()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(student?.profileImg),
+                            contentDescription = "Student Image",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.LightGray)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.Gray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(student?.firstName?.firstOrNull()?.toString() ?: "S", color = Color.White)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(text = student?.let { "${it.firstName} ${it.lastName}" } ?: booking.studentId, fontWeight = FontWeight.Bold)
+                        Text(text = booking.timeSlot, fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
             }
         }
     }
 }
+
 
 @Composable
 fun ReviewsCard(reviews: List<String>) {
