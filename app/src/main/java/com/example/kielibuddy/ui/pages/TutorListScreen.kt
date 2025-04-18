@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,12 +25,13 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.R
 import com.example.kielibuddy.model.UserModel
-import com.example.kielibuddy.ui.components.BackButton
+import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlin.random.Random
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TutorListScreen(
     modifier: Modifier = Modifier,
@@ -55,59 +57,74 @@ fun TutorListScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFF9F7FF))
-            .padding(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BackButton(navController = navController)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Finnish", fontSize = 28.sp, fontWeight = FontWeight.Bold)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Finnish", color = Color.White)
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                actions = {
+                    Spacer(modifier = Modifier.width(48.dp)) // balance the title center
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Purple40)
+            )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    ) { paddingValues ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(Color(0xFFF9F7FF))
+                .padding(12.dp)
         ) {
-            Text("${filteredTutors.size} tutors", color = Color.Gray, fontSize = 16.sp)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (selectedFilter == "Default") "Sort by relevance" else "Sort by: $selectedFilter",
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = Color.Black)
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    offset = DpOffset(x = 50.dp, y = 0.dp),
-                    modifier = Modifier
-                        .wrapContentWidth()
-                        .background(Color.White, RoundedCornerShape(8.dp))
-                ) {
-                    listOf("Lowest Price", "Highest Price", "Rating", "Reviews").forEach { filter ->
-                        DropdownMenuItem(
-                            text = { Text(filter) },
-                            onClick = { selectedFilter = filter; expanded = false }
-                        )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("${filteredTutors.size} tutors", color = Color.Gray, fontSize = 16.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (selectedFilter == "Default") "Sort by relevance" else "Sort by: $selectedFilter",
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = Color.Black)
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        offset = DpOffset(x = 50.dp, y = 0.dp),
+                        modifier = Modifier
+                            .wrapContentWidth()
+                            .background(Color.White, RoundedCornerShape(8.dp))
+                    ) {
+                        listOf("Lowest Price", "Highest Price", "Rating", "Reviews").forEach { filter ->
+                            DropdownMenuItem(
+                                text = { Text(filter) },
+                                onClick = { selectedFilter = filter; expanded = false }
+                            )
+                        }
                     }
                 }
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(filteredTutors) { tutor ->
-                TutorCard(tutor, navController)
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(filteredTutors) { tutor ->
+                    TutorCard(tutor, navController)
+                }
             }
         }
     }
@@ -139,7 +156,6 @@ fun TutorCard(tutor: UserModel, navController: NavController) {
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-
                     Text(
                         text = "${tutor.firstName} ${tutor.lastName}",
                         fontSize = 20.sp,
@@ -147,7 +163,6 @@ fun TutorCard(tutor: UserModel, navController: NavController) {
                     )
 
                     Spacer(modifier = Modifier.height(4.dp))
-
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -157,7 +172,6 @@ fun TutorCard(tutor: UserModel, navController: NavController) {
                         Text("€${tutor.price50Min}", fontSize = 16.sp)
                         Text("⭐ ${String.format("%.1f", Random.nextDouble(4.0, 5.0))}", fontSize = 14.sp)
                     }
-
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
