@@ -27,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.Booking
+import com.example.kielibuddy.model.LessonType
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.repository.UserRepository
@@ -371,6 +372,16 @@ fun ScheduleSection(navController: NavController, bookings: List<Booking>) {
                             if (minutesUntil in 0..60) {
                                 Text("Starts in $minutesUntil min", fontSize = 12.sp, color = Color(0xFF6A3DE2))
                             }
+                            if (booking.lessonType == LessonType.TRIAL) {
+                                Text(
+                                    text = "Trial",
+                                    color = Color(0xFF4E2AB3),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+
                         }
                     }
 

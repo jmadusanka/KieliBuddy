@@ -30,6 +30,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.Booking
+import com.example.kielibuddy.model.BookingStatus
+import com.example.kielibuddy.model.LessonType
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.repository.AvailabilityRepository
 import com.example.kielibuddy.repository.UserRepository
@@ -48,7 +50,8 @@ import java.util.*
 fun StudentBookingCalendar(
     modifier: Modifier = Modifier,
     navController: NavController,
-    tutorId: String? = null
+    tutorId: String? = null,
+    isTrial: Boolean = false
 ) {
     val today = LocalDate.now()
     var currentWeekStartDate by remember { mutableStateOf(today.with(DayOfWeek.MONDAY)) }
@@ -91,6 +94,12 @@ fun StudentBookingCalendar(
             TimeSlot(time, index + 8, true, index + 9)
         } else null
     } ?: emptyList()
+
+    if (isTrial) {
+        LaunchedEffect(Unit) {
+            Toast.makeText(context, "You're booking a 20-minute free trial session.", Toast.LENGTH_LONG).show()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -238,13 +247,14 @@ fun StudentBookingCalendar(
                 }
 
                 if (showConfirmationDialog) {
+                    val sessionLabel = if (isTrial) "20-min Trial Session" else "1-hour Session"
+                    val confirmationText = "Book a $sessionLabel at ${selectedTimeSlot?.time} on ${selectedDate.format(DateTimeFormatter.ofPattern("d MMMM"))} with $tutorName?"
+
                     AlertDialog(
                         onDismissRequest = { showConfirmationDialog = false },
                         title = { Text("Confirm Booking") },
                         text = {
-                            Text(
-                                "Book ${selectedTimeSlot?.time} on ${selectedDate.format(DateTimeFormatter.ofPattern("d MMMM"))} with $tutorName?"
-                            )
+                            Text(confirmationText)
                         },
                         confirmButton = {
                             Button(onClick = {
@@ -255,7 +265,10 @@ fun StudentBookingCalendar(
                                     studentId = currentUserId,
                                     date = selectedDate.toString(),
                                     timeSlot = selectedTimeSlot?.time ?: "",
-                                    status = com.example.kielibuddy.model.BookingStatus.BOOKED
+                                    durationMinutes = if (isTrial) 20 else 60,
+                                    price = if (isTrial) 0 else (tutor?.price50Min ?: 0),
+                                    lessonType = if (isTrial) LessonType.TRIAL else LessonType.REGULAR,
+                                    status = BookingStatus.BOOKED
                                 )
 
                                 coroutineScope.launch {

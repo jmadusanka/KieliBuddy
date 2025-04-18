@@ -233,7 +233,7 @@ fun ProfileScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = { /* TODO: Chat */ },
+                    onClick = { navController.navigate("chat/${tutorId}/${ userData?.firstName}") },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.weight(1f)
@@ -242,12 +242,12 @@ fun ProfileScreen(
                 }
 
                 Button(
-                    onClick = { /* TODO: Buy Trial */ },
+                    onClick = { navController.navigate("StudentBooking/${tutorId}?isTrial=true") },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2)),
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Buy a trial lesson", color = Color.White)
+                    Text("Request a trial lesson", color = Color.White)
                 }
             }
         }

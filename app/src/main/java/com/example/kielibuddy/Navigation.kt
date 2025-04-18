@@ -31,6 +31,8 @@ import com.example.kielibuddy.viewmodel.AuthState
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.ChatViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.kielibuddy.ui.pages.ChatInbox
 import com.example.kielibuddy.ui.pages.StudentBookingCalendar
 import com.example.kielibuddy.ui.pages.StudentPublicProfileScreen
@@ -176,9 +178,24 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
             )
         }
 
-        composable("StudentBooking/{tutorId}") { backStackEntry ->
-            val tutorId = backStackEntry.arguments?.getString("tutorId") ?: ""
-            StudentBookingCalendar(navController = navController, tutorId = tutorId)
+        composable(
+            route = "StudentBooking/{tutorId}?isTrial={isTrial}",
+            arguments = listOf(
+                navArgument("tutorId") { type = NavType.StringType },
+                navArgument("isTrial") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val tutorId = backStackEntry.arguments?.getString("tutorId")
+            val isTrial = backStackEntry.arguments?.getBoolean("isTrial") ?: false
+
+            StudentBookingCalendar(
+                navController = navController,
+                tutorId = tutorId,
+                isTrial = isTrial
+            )
         }
 
         composable("tutorEarnings") {
