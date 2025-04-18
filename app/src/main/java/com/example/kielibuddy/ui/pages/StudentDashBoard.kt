@@ -23,26 +23,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.kielibuddy.model.Booking
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
+import com.example.kielibuddy.repository.UserRepository
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.AuthViewModel
+import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import java.time.Duration
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
     val userData by authViewModel.userData.observeAsState()
     val tutors = remember { mutableStateOf(emptyList<UserModel>()) }
+    val bookingViewModel: BookingViewModel = viewModel()
+    val studentBookings by bookingViewModel.studentBookings.collectAsState()
 
     LaunchedEffect(Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null && userData == null) {
+            authViewModel.loadUserData(uid)
             authViewModel.loadUserData(uid)
         }
 
@@ -53,6 +64,12 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
             .get().await()
             .mapNotNull { it.toObject(UserModel::class.java) }
         tutors.value = result
+    }
+
+    LaunchedEffect(userData?.id) {
+        userData?.id?.let { id ->
+            bookingViewModel.loadStudentBookings(id)
+        }
     }
 
     if (userData == null) {
@@ -128,7 +145,8 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
                 }
 
                 item {
-                    ScheduleSection(navController)
+                    println("studentBookings: $studentBookings")
+                    ScheduleSection(navController = navController, bookings = studentBookings)
                 }
 
                 item {
@@ -284,36 +302,89 @@ fun ProgressSection() {
 }
 
 @Composable
-fun ScheduleSection(navController: NavController) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(10.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F3F3)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Text("Finnish Lesson with John Doe", fontSize = 16.sp, color = Color.Black)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+fun ScheduleSection(navController: NavController, bookings: List<Booking>) {
+    val topLessons = bookings.sortedBy { it.date }.take(3)
+    val userRepo = remember { UserRepository() }
+    val studentMap = remember { mutableStateMapOf<String, UserModel>() }
+    val now = LocalTime.now()
+    val today = LocalDate.now()
+    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    LaunchedEffect(topLessons) {
+        topLessons.forEach { booking ->
+            if (!studentMap.containsKey(booking.tutorId)) {
+                val tutor = userRepo.getUserDetails(booking.tutorId)
+                if (tutor != null) {
+                    studentMap[booking.tutorId] = tutor
+                }
+            }
+        }
+    }
+
+    Column(modifier = Modifier.padding(horizontal = 10.dp)) {
+        topLessons.forEach { booking ->
+            val tutor = studentMap[booking.tutorId]
+            val isToday = LocalDate.parse(booking.date) == today
+            val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
+            val minutesUntil = startTime?.let { Duration.between(now, it).toMinutes() } ?: Long.MAX_VALUE
+            val showJoinButton = minutesUntil in -5..55
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F3F3)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Text(
-                    text = "Friday, 3 PM - 4 PM",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
-                Button(
-                    onClick = { navController.navigate("join_session") },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2)),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    Text("Join Now", color = Color.White)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (!tutor?.profileImg.isNullOrBlank()) {
+                            Image(
+                                painter = rememberAsyncImagePainter(tutor?.profileImg),
+                                contentDescription = "Tutor Image",
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.LightGray)
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Gray),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(tutor?.firstName?.firstOrNull()?.toString() ?: "T", color = Color.White)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("Lesson with ${tutor?.firstName ?: "Your tutor"}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("${booking.date}, ${booking.timeSlot}", fontSize = 14.sp, color = Color.Gray)
+                            if (isToday) {
+                                Text("Today", fontSize = 12.sp, color = Color(0xFF4E2AB3), fontWeight = FontWeight.Bold)
+                            }
+                            if (minutesUntil in 0..60) {
+                                Text("Starts in $minutesUntil min", fontSize = 12.sp, color = Color(0xFF6A3DE2))
+                            }
+                        }
+                    }
+
+                    if (showJoinButton) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { navController.navigate("join_session") },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2)),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text("Join Now", color = Color.White)
+                        }
+                    }
                 }
             }
         }
