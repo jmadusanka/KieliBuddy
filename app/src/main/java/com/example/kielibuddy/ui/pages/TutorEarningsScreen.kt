@@ -8,7 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,27 +16,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.model.PaymentSession
-
+import com.example.kielibuddy.ui.theme.Purple40
+import com.example.kielibuddy.viewmodel.EarningsViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TutorEarningsScreen(
-    navController: NavController,
-    totalEarnings: Double = 450.0,
-    totalStudents: Int = 15,
-    totalHours: Double = 120.5,
-    paymentHistory: List<PaymentSession> = listOf(
-        PaymentSession("Student A", 25.0, "Apr 16, 2025", 1.5),
-        PaymentSession("Student B", 30.0, "Apr 14, 2025", 2.0),
-        PaymentSession("Student C", 20.0, "Apr 12, 2025", 1.0)
-    )
+    navController: NavController
 ) {
-    Scaffold(
-        topBar = {
+    val earningsViewModel: EarningsViewModel = viewModel()
+    val paymentHistory by earningsViewModel.paymentHistory.collectAsState()
+    val tutorId = FirebaseAuth.getInstance().currentUser?.uid
+    // 🔁 Trigger loading on screen launch
+    LaunchedEffect(tutorId) {
+        tutorId?.let {
+            earningsViewModel.loadEarningsForTutor(it)
+        }
+    }
+    Scaffold(        topBar = {
             TopAppBar(
                 title = {
                     Box(
@@ -52,13 +54,10 @@ fun TutorEarningsScreen(
                     }
                 },
                 actions = {
-                    Spacer(modifier = Modifier.width(48.dp)) // Same width as IconButton to balance the layout
+                    Spacer(modifier = Modifier.width(48.dp))
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Purple40
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Purple40)
             )
-
         }
     ) { paddingValues ->
         LazyColumn(
@@ -72,9 +71,16 @@ fun TutorEarningsScreen(
             item {
                 Text("Earnings Summary", fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(20.dp))
-                SummaryItem("Total Earnings", "€$totalEarnings")
+
+                // 🔁 Dynamic summaries based on paymentHistory
+                val totalEarnings = paymentHistory.sumOf { it.amount }
+                val totalHours = paymentHistory.sumOf { it.hours }
+                val totalStudents = paymentHistory.map { it.studentName }.distinct().count()
+
+                SummaryItem("Total Earnings", "€${"%.2f".format(totalEarnings)}")
                 SummaryItem("Total Students", "$totalStudents")
-                SummaryItem("Total Hours", "${totalHours}h")
+                SummaryItem("Total Hours", "${"%.1f".format(totalHours)}h")
+
                 Spacer(modifier = Modifier.height(20.dp))
                 Text("Payment History", fontSize = 18.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(12.dp))
@@ -127,18 +133,4 @@ fun SummaryItem(label: String, value: String) {
             Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun TutorEarningsScreenPreview() {
-    val navController = rememberNavController()
-    TutorEarningsScreen(
-        navController = navController,
-        paymentHistory = listOf(
-            PaymentSession("Student A", 25.0, "Apr 16, 2025", 1.5),
-            PaymentSession("Student B", 30.0, "Apr 14, 2025", 2.0),
-            PaymentSession("Student C", 20.0, "Apr 12, 2025", 1.0)
-        )
-    )
 }
