@@ -282,15 +282,41 @@ fun ProgressSection() {
 
 @Composable
 fun ScheduleSection(navController: NavController, bookings: List<Booking>) {
-    val topLessons = bookings.sortedBy { it.date }.take(3)
     val userRepo = remember { UserRepository() }
     val studentMap = remember { mutableStateMapOf<String, UserModel>() }
     val now = LocalTime.now()
     val today = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
 
-    LaunchedEffect(topLessons) {
-        topLessons.forEach { booking ->
+    val upcomingLessons = remember(bookings) {
+        bookings.filter { booking ->
+            val lessonDate = LocalDate.parse(booking.date)
+            val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
+
+            if (lessonDate.isAfter(today)) {
+                true
+            } else if (lessonDate.isEqual(today) && startTime != null && startTime.isAfter(now)) {
+                true
+            } else {
+                false
+            }
+        }.sortedBy { booking ->
+            val lessonDate = LocalDate.parse(booking.date)
+            val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
+            if (lessonDate.isEqual(today) && startTime != null) {
+                startTime.toSecondOfDay() - now.toSecondOfDay() // Sort by time difference today
+            } else if (lessonDate.isEqual(today) && startTime == null) {
+                Int.MAX_VALUE
+            } else {
+                val todayStartOfDay = today.atStartOfDay().toLocalTime()
+                val lessonDateStartOfDay = lessonDate.atStartOfDay().toLocalTime()
+                lessonDate.compareTo(today)
+            }
+        }.take(3)
+    }
+
+    LaunchedEffect(upcomingLessons) {
+        upcomingLessons.forEach { booking ->
             if (!studentMap.containsKey(booking.tutorId)) {
                 val tutor = userRepo.getUserDetails(booking.tutorId)
                 if (tutor != null) {
@@ -301,77 +327,81 @@ fun ScheduleSection(navController: NavController, bookings: List<Booking>) {
     }
 
     Column(modifier = Modifier.padding(horizontal = 10.dp)) {
-        topLessons.forEach { booking ->
-            val tutor = studentMap[booking.tutorId]
-            val isToday = LocalDate.parse(booking.date) == today
-            val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
-            val minutesUntil = startTime?.let { Duration.between(now, it).toMinutes() } ?: Long.MAX_VALUE
-            val showJoinButton = minutesUntil in -5..55
+        if (upcomingLessons.isEmpty()) {
+            Text("No upcoming lessons scheduled.", color = Color.Gray, modifier = Modifier.padding(16.dp))
+        } else {
+            upcomingLessons.forEach { booking -> // Use upcomingLessons here
+                val tutor = studentMap[booking.tutorId]
+                val isToday = LocalDate.parse(booking.date) == today
+                val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
+                val minutesUntil = startTime?.let { Duration.between(now, it).toMinutes() } ?: Long.MAX_VALUE
+                val showJoinButton = minutesUntil in -5..55
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F3F3)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.Start
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F3F3)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (!tutor?.profileImg.isNullOrBlank()) {
-                            Image(
-                                painter = rememberAsyncImagePainter(tutor?.profileImg),
-                                contentDescription = "Tutor Image",
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.LightGray)
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Gray),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(tutor?.firstName?.firstOrNull()?.toString() ?: "T", color = Color.White)
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text("Lesson with ${tutor?.firstName ?: "Your tutor"}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("${booking.date}, ${booking.timeSlot}", fontSize = 14.sp, color = Color.Gray)
-                            if (isToday) {
-                                Text("Today", fontSize = 12.sp, color = Color(0xFF4E2AB3), fontWeight = FontWeight.Bold)
-                            }
-                            if (minutesUntil in 0..60) {
-                                Text("Starts in $minutesUntil min", fontSize = 12.sp, color = Color(0xFF6A3DE2))
-                            }
-                            if (booking.lessonType == LessonType.TRIAL) {
-                                Text(
-                                    text = "Trial",
-                                    color = Color(0xFF4E2AB3),
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    modifier = Modifier.padding(top = 4.dp)
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (!tutor?.profileImg.isNullOrBlank()) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(tutor?.profileImg),
+                                    contentDescription = "Tutor Image",
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.LightGray)
                                 )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Gray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(tutor?.firstName?.firstOrNull()?.toString() ?: "T", color = Color.White)
+                                }
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("Lesson with ${tutor?.firstName ?: "Your tutor"}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Text("${booking.date}, ${booking.timeSlot}", fontSize = 14.sp, color = Color.Gray)
+                                if (isToday) {
+                                    Text("Today", fontSize = 12.sp, color = Color(0xFF4E2AB3), fontWeight = FontWeight.Bold)
+                                }
+                                if (minutesUntil in 0..60) {
+                                    Text("Starts in $minutesUntil min", fontSize = 12.sp, color = Color(0xFF6A3DE2))
+                                }
+                                if (booking.lessonType == LessonType.TRIAL) {
+                                    Text(
+                                        text = "Trial",
+                                        color = Color(0xFF4E2AB3),
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
 
+                            }
                         }
-                    }
 
-                    if (showJoinButton) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { navController.navigate("join_session") },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2)),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Text("Join Now", color = Color.White)
+                        if (showJoinButton) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { navController.navigate("join_session") },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2)),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text("Join Now", color = Color.White)
+                            }
                         }
                     }
                 }
