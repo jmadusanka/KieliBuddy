@@ -1,5 +1,6 @@
 package com.example.kielibuddy.viewmodel
 
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kielibuddy.model.Booking
@@ -51,6 +52,7 @@ class EarningsViewModel : ViewModel() {
 
                 sessions.add(
                     PaymentSession(
+                        studentId = booking.studentId, // ✅ pass studentId here
                         studentName = studentName,
                         amount = booking.price.toDouble(),
                         date = formattedDate,

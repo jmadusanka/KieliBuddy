@@ -75,8 +75,7 @@ fun TutorEarningsScreen(
                 // Dynamic summaries based on paymentHistory
                 val totalEarnings = paymentHistory.sumOf { it.amount }
                 val totalHours = paymentHistory.sumOf { it.hours }
-                val totalStudents = paymentHistory.map { it.studentName }.distinct().count()
-
+                val totalStudents = paymentHistory.map { it.studentId }.distinct().count()
                 SummaryItem("Total Earnings", "€${"%.2f".format(totalEarnings)}")
                 SummaryItem("Total Students", "$totalStudents")
                 SummaryItem("Total Hours", "${"%.1f".format(totalHours)}h")

@@ -29,7 +29,6 @@ import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,18 +40,38 @@ fun TutorListScreen(
     var selectedFilter by remember { mutableStateOf("Default") }
     var tutors by remember { mutableStateOf<List<UserModel>>(emptyList()) }
     var expanded by remember { mutableStateOf(false) }
+    var reviewStats by remember { mutableStateOf<Map<String, Pair<Double, Int>>>(emptyMap()) }
+    var lessonCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
     LaunchedEffect(Unit) {
-        val snapshot = FirebaseFirestore.getInstance().collection("users").whereEqualTo("role", "TEACHER").get().await()
-        tutors = snapshot.documents.mapNotNull { doc -> doc.toObject(UserModel::class.java) }
+        val snapshot = FirebaseFirestore.getInstance().collection("users")
+            .whereEqualTo("role", "TEACHER")
+            .get().await()
+        tutors = snapshot.documents.mapNotNull { it.toObject(UserModel::class.java) }
+
+        val reviewSnapshot = FirebaseFirestore.getInstance().collection("reviews").get().await()
+        val grouped = reviewSnapshot.documents.groupBy { it.getString("tutorId") ?: "" }
+        val statsMap = grouped.mapValues { (_, docs) ->
+            val ratings = docs.mapNotNull { it.getLong("rating")?.toDouble() }
+            ratings.average() to ratings.size
+        }
+        reviewStats = statsMap
+
+        val bookingsSnapshot = FirebaseFirestore.getInstance().collection("bookings").get().await()
+        val groupedBookings = bookingsSnapshot.documents.groupBy { it.getString("tutorId") ?: "" }
+        val lessonsMap = groupedBookings.mapValues { (_, docs) ->
+            docs.mapNotNull { it.getString("studentId") }.distinct().count()
+        }
+        lessonCounts = lessonsMap
+
     }
 
-    val filteredTutors = remember(selectedFilter, tutors) {
+    val filteredTutors = remember(selectedFilter, tutors, reviewStats) {
         when (selectedFilter) {
             "Lowest Price" -> tutors.sortedBy { it.price50Min }
             "Highest Price" -> tutors.sortedByDescending { it.price50Min }
-            "Rating" -> tutors.sortedByDescending { Random.nextDouble(4.0, 5.0) }
-            "Reviews" -> tutors.sortedByDescending { Random.nextInt(20, 150) }
+            "Rating" -> tutors.sortedByDescending { reviewStats[it.id]?.first ?: 0.0 }
+            "Reviews" -> tutors.sortedByDescending { reviewStats[it.id]?.second ?: 0 }
             else -> tutors
         }
     }
@@ -74,7 +93,7 @@ fun TutorListScreen(
                     }
                 },
                 actions = {
-                    Spacer(modifier = Modifier.width(48.dp)) // balance the title center
+                    Spacer(modifier = Modifier.width(48.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Purple40)
             )
@@ -123,7 +142,7 @@ fun TutorListScreen(
             Spacer(modifier = Modifier.height(8.dp))
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(filteredTutors) { tutor ->
-                    TutorCard(tutor, navController)
+                    TutorCard(tutor, navController, reviewStats[tutor.id], lessonCounts[tutor.id] ?: 0)
                 }
             }
         }
@@ -131,7 +150,10 @@ fun TutorListScreen(
 }
 
 @Composable
-fun TutorCard(tutor: UserModel, navController: NavController) {
+fun TutorCard(tutor: UserModel, navController: NavController, stats: Pair<Double, Int>? = null, lessonCount: Int = 0) {
+    val ratingText = stats?.let { "%.1f\u2B50".format(it.first) } ?:  "N/A"
+    val reviewCount = stats?.second ?: 0
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -170,7 +192,7 @@ fun TutorCard(tutor: UserModel, navController: NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("€${tutor.price50Min}", fontSize = 16.sp)
-                        Text("⭐ ${String.format("%.1f", Random.nextDouble(4.0, 5.0))}", fontSize = 14.sp)
+                        Text(ratingText, fontSize = 14.sp)
                     }
 
                     Row(
@@ -179,7 +201,7 @@ fun TutorCard(tutor: UserModel, navController: NavController) {
                     ) {
                         Text("60-min lesson", fontSize = 12.sp, color = Color.Gray)
                         Text(
-                            text = "${Random.nextInt(50, 150)} reviews",
+                            text = "$reviewCount reviews",
                             fontSize = 12.sp,
                             color = Color.Gray,
                             modifier = Modifier.clickable {
@@ -201,7 +223,7 @@ fun TutorCard(tutor: UserModel, navController: NavController) {
             )
 
             Spacer(modifier = Modifier.height(6.dp))
-            Text("${tutor.lessonCount} lessons", fontSize = 13.sp, color = Color.Gray)
+            Text("$lessonCount lessons", fontSize = 13.sp, color = Color.Gray)
 
             Spacer(modifier = Modifier.height(4.dp))
             val spokenLanguages = tutor.languagesSpoken.take(3).joinToString(", ") +
