@@ -83,5 +83,6 @@ dependencies {
     implementation (libs.firebase.messaging)
     implementation ("io.agora.rtc:full-sdk:4.5.1")
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
-
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("androidx.browser:browser:1.6.0")
 }

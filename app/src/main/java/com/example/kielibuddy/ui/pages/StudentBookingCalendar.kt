@@ -1,6 +1,9 @@
 package com.example.kielibuddy.ui.pages
 
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,6 +42,7 @@ import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
+import createStripeCheckoutSession
 import kotlinx.coroutines.launch
 import java.time.*
 import java.time.format.DateTimeFormatter
@@ -259,6 +263,7 @@ fun StudentBookingCalendar(
                         confirmButton = {
                             Button(onClick = {
                                 val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
+
                                 val booking = Booking(
                                     id = UUID.randomUUID().toString(),
                                     tutorId = tutorId ?: "",
@@ -271,18 +276,35 @@ fun StudentBookingCalendar(
                                     status = BookingStatus.BOOKED
                                 )
 
+                                Log.d("BookingMeta", booking.toString())
+
                                 coroutineScope.launch {
-                                    bookingViewModel.bookSession(
-                                        booking,
-                                        onSuccess = {
-                                            Toast.makeText(context, "Booking confirmed!", Toast.LENGTH_SHORT).show()
-                                            showConfirmationDialog = false
-                                            navController.navigate("StudentScheduleScreen")
-                                        },
-                                        onError = {
-                                            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-                                        }
-                                    )
+                                    if (!isTrial) {
+                                        createStripeCheckoutSession(
+                                            amountInCents = booking.price * 100,
+                                            booking = booking,
+                                            onSuccess = { url ->
+                                                val intent = CustomTabsIntent.Builder().build()
+                                                intent.launchUrl(context, Uri.parse(url))
+                                            },
+                                            onError = { error ->
+                                                println("StripeCheckout Stripe Error: $error")
+                                                Toast.makeText(context, "Payment failed: $error", Toast.LENGTH_LONG).show()
+                                            }
+                                        )
+                                    } else {
+                                        bookingViewModel.bookSession(
+                                            booking,
+                                            onSuccess = {
+                                                Toast.makeText(context, "Booking confirmed!", Toast.LENGTH_SHORT).show()
+                                                showConfirmationDialog = false
+                                                navController.navigate("StudentScheduleScreen")
+                                            },
+                                            onError = {
+                                                Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                                            }
+                                        )
+                                    }
                                 }
                             },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2))
