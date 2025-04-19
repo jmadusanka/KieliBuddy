@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -31,6 +33,7 @@ import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.kielibuddy.ui.theme.Purple40
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -63,17 +66,24 @@ fun StudentScheduleScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                navigationIcon = {
-                    BackButton(navController = navController)
-                },
                 title = {
-                    Text(screenTitle, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(screenTitle, color = Color.White)
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                actions = {
+                    Spacer(modifier = Modifier.width(48.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = Color.Black,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = Purple40
                 )
             )
         },
