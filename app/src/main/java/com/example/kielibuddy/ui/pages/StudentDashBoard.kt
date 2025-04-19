@@ -33,6 +33,7 @@ import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.repository.UserRepository
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
+import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -84,29 +85,25 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.height(56.dp),
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color.Black,
-                    navigationIconContentColor = Color.Black,
-                    actionIconContentColor = Color.Black
-                ),
-                navigationIcon = {
-                    BackButton(navController = navController)
-                },
                 title = {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(
-                            "Student Dashboard",
-                            color = Color.Black,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Student Dashboard", color = Color.White)
                     }
-                }
+                },
+                // No back button here because it's a home screen
+                navigationIcon = {},
+                actions = {
+                    Spacer(modifier = Modifier.width(48.dp)) // To balance layout, just like in earnings screen
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Purple40
+                )
             )
-        },
+        }
+        ,
         bottomBar = {
             BottomNavigationBar(
                 navController = navController,
