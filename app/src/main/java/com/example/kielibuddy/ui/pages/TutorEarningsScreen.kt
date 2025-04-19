@@ -32,7 +32,7 @@ fun TutorEarningsScreen(
     val earningsViewModel: EarningsViewModel = viewModel()
     val paymentHistory by earningsViewModel.paymentHistory.collectAsState()
     val tutorId = FirebaseAuth.getInstance().currentUser?.uid
-    // 🔁 Trigger loading on screen launch
+    // Trigger loading on screen launch
     LaunchedEffect(tutorId) {
         tutorId?.let {
             earningsViewModel.loadEarningsForTutor(it)
@@ -72,7 +72,7 @@ fun TutorEarningsScreen(
                 Text("Earnings Summary", fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // 🔁 Dynamic summaries based on paymentHistory
+                // Dynamic summaries based on paymentHistory
                 val totalEarnings = paymentHistory.sumOf { it.amount }
                 val totalHours = paymentHistory.sumOf { it.hours }
                 val totalStudents = paymentHistory.map { it.studentName }.distinct().count()
@@ -103,7 +103,7 @@ fun TutorEarningsScreen(
                     ) {
                         Column {
                             Text(session.studentName, fontWeight = FontWeight.Medium)
-                            Text("${session.date} • ${session.hours}h", fontSize = 12.sp, color = Color.Gray)
+                            Text("${session.date} • ${(session.hours * 60).toInt()}min", fontSize = 12.sp, color = Color.Gray)
                         }
                         Text("€${session.amount}", fontWeight = FontWeight.SemiBold)
                     }
