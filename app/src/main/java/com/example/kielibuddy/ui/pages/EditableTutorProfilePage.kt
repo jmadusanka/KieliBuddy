@@ -54,8 +54,7 @@ fun EditableTutorProfilePage(navController: NavController, authViewModel: AuthVi
     var lastName by remember { mutableStateOf(TextFieldValue(userData?.lastName ?: "")) }
     var aboutMe by remember { mutableStateOf(TextFieldValue(userData?.aboutMe ?: "")) }
     var country by remember { mutableStateOf(TextFieldValue(userData?.countryOfBirth ?: "")) }
-    var price20 by remember { mutableStateOf(TextFieldValue(userData?.price20Min?.toInt()?.toString() ?: "")) }
-    var price50 by remember { mutableStateOf(TextFieldValue(userData?.price50Min?.toInt()?.toString() ?: "")) }
+    var price60 by remember { mutableStateOf(TextFieldValue(userData?.price50Min?.toInt()?.toString() ?: "")) }
     var languages by remember { mutableStateOf(TextFieldValue(userData?.languagesSpoken?.joinToString(", ") ?: "")) }
     var birthday by remember { mutableStateOf(TextFieldValue(userData?.birthday ?: "")) }
 
@@ -120,11 +119,11 @@ fun EditableTutorProfilePage(navController: NavController, authViewModel: AuthVi
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF6A3DE2) // Match your app's purple
+                    containerColor = Color(0xFF6A3DE2)
                 )
             )
         },
-        containerColor = Color(0xE6E0F5FF) // Full background matches theme
+        containerColor = Color(0xE6E0F5FF)
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -160,7 +159,6 @@ fun EditableTutorProfilePage(navController: NavController, authViewModel: AuthVi
                     )
                 }
             }
-
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -232,18 +230,9 @@ fun EditableTutorProfilePage(navController: NavController, authViewModel: AuthVi
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
-                value = price20,
-                onValueChange = { price20 = it },
-                label = { Text("Price for 20 min") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = price50,
-                onValueChange = { price50 = it },
-                label = { Text("Price for 50 min") },
+                value = price60,
+                onValueChange = { price60 = it },
+                label = { Text("Price for 60 min") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -272,8 +261,7 @@ fun EditableTutorProfilePage(navController: NavController, authViewModel: AuthVi
                     "aboutMe" to aboutMe.text,
                     "countryOfBirth" to country.text,
                     "introVideoUrl" to introVideoUrl,
-                    "price20Min" to (price20.text.toIntOrNull() ?: 0) as Any,
-                    "price50Min" to (price50.text.toIntOrNull() ?: 0) as Any,
+                    "price50Min" to (price60.text.toIntOrNull() ?: 0) as Any,
                     "languagesSpoken" to languages.text.split(",").map { it.trim() },
                     "birthday" to birthday.text
                 )
@@ -292,7 +280,7 @@ fun EditableTutorProfilePage(navController: NavController, authViewModel: AuthVi
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = { navController.navigate("profile") }, // or navController.popBackStack()
+                onClick = { navController.navigate("profile") },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
                 modifier = Modifier.fillMaxWidth()
             ) {
