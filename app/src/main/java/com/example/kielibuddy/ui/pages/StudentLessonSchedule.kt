@@ -16,26 +16,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.kielibuddy.R
 import com.example.kielibuddy.model.Booking
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.repository.UserRepository
-import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kielibuddy.ui.theme.Purple40
-import kotlinx.coroutines.launch
-import java.time.LocalTime
+import java.time.Duration
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,9 +94,37 @@ fun StudentScheduleScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (bookings.isNotEmpty()) {
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                val now = LocalDateTime.now()
+
+                val (upcomingBookings, pastBookings) = bookings.partition { booking ->
+                    val dateTime = try {
+                        val dateTimeStr = "${booking.date} ${booking.timeSlot.split(" - ").first()}"
+                        LocalDateTime.parse(dateTimeStr, formatter)
+                    } catch (e: Exception) {
+                        LocalDateTime.MIN
+                    }
+                    dateTime.isAfter(now)
+                }
+
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(bookings.sortedBy { it.date }) { booking ->
-                        BookingCard(booking = booking, viewerRole = roleMode)
+                    if (upcomingBookings.isNotEmpty()) {
+                        item {
+                            Text("Upcoming Lessons", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        }
+                        items(upcomingBookings.sortedBy { it.date }) { booking ->
+                            BookingCard(booking = booking, viewerRole = roleMode, isPast = false)
+                        }
+                    }
+
+                    if (pastBookings.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Past Lessons", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Gray)
+                        }
+                        items(pastBookings.sortedByDescending { it.date }) { booking ->
+                            BookingCard(booking = booking, viewerRole = roleMode, isPast = true)
+                        }
                     }
                 }
             } else {
@@ -110,11 +135,21 @@ fun StudentScheduleScreen(
 }
 
 @Composable
-fun BookingCard(booking: Booking, viewerRole: UserRole) {
-    val now = LocalTime.now()
-    val formatter = DateTimeFormatter.ofPattern("HH:mm")
-    val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
-    val showJoinButton = startTime != null && now.hour == startTime.hour
+fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false) {
+    val now = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    val startDateTime = try {
+        val dateTimeStr = "${booking.date} ${booking.timeSlot.split(" - ").first()}"
+        LocalDateTime.parse(dateTimeStr, formatter)
+    } catch (e: Exception) {
+        LocalDateTime.MIN
+    }
+
+    val durationUntilStart = Duration.between(now, startDateTime)
+    val showCountdown = durationUntilStart.toHours() <= 1 && durationUntilStart.toMinutes() > 5
+    val enableJoinButton = durationUntilStart.toMinutes() <= 5 && !isPast
 
     var otherUser by remember { mutableStateOf<UserModel?>(null) }
     val userRepo = remember { UserRepository() }
@@ -130,47 +165,59 @@ fun BookingCard(booking: Booking, viewerRole: UserRole) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isPast) Color(0xFFF0F0F0) else Color.White
+        ),
+        elevation = if (isPast) CardDefaults.cardElevation(0.dp) else CardDefaults.cardElevation(4.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (!profileImg.isNullOrBlank()) {
-                Image(
-                    painter = rememberAsyncImagePainter(profileImg),
-                    contentDescription = "Profile",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(Color.LightGray)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(Color.LightGray),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(fullName.first().toString(), color = Color.White, fontWeight = FontWeight.Bold)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (!profileImg.isNullOrBlank()) {
+                    Image(
+                        painter = rememberAsyncImagePainter(profileImg),
+                        contentDescription = "Profile",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(Color.LightGray)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(Color.LightGray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(fullName.first().toString(), color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text("${if (viewerRole == UserRole.STUDENT) "Tutor" else "Student"}: $fullName", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("Date: ${booking.date}", fontSize = 14.sp, color = Color.Gray)
-                Text("Time: ${booking.timeSlot}", fontSize = 14.sp, color = Color.Gray)
-            }
-
-            if (showJoinButton) {
-                Button(onClick = { /* TODO: link to video call */ }) {
-                    Text("Join Now")
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("${if (viewerRole == UserRole.STUDENT) "Tutor" else "Student"}: $fullName", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Date: ${booking.date}", fontSize = 14.sp, color = Color.Gray)
+                    Text("Time: ${booking.timeSlot}", fontSize = 14.sp, color = Color.Gray)
+                    if (showCountdown) {
+                        val minutesLeft = durationUntilStart.toMinutes().toInt()
+                        Text("Starts in $minutesLeft min", fontSize = 12.sp, color = Color.Red)
+                    }
+                    if (!isPast) {
+                        Button(
+                            onClick = { /* TODO: link to video call */ },
+                            enabled = enableJoinButton,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (enableJoinButton) MaterialTheme.colorScheme.primary else Color.Gray
+                            )
+                        ) {
+                            Text("Join Now")
+                        }
+                    }
                 }
+
+
             }
         }
     }

@@ -2,6 +2,7 @@ package com.example.kielibuddy.repository
 
 import com.example.kielibuddy.model.Booking
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 
 class BookingRepository {
@@ -16,18 +17,13 @@ class BookingRepository {
 
     suspend fun getBookingsForStudent(studentId: String): List<Booking> {
         return try {
-            val snapshot = db.collection("bookings")
+            db.collection("bookings")
+                .whereEqualTo("studentId", studentId)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .get()
                 .await()
+                .documents.mapNotNull { it.toObject(Booking::class.java) }
 
-            for (doc in snapshot.documents) {
-                //println("📄 Booking: ${doc.id} => ${doc.data}")
-            }
-
-            val filtered = snapshot.documents
-                .mapNotNull { it.toObject(Booking::class.java) }
-                .filter { it.studentId == studentId }
-            filtered
         } catch (e: Exception) {
             emptyList()
         }
@@ -37,6 +33,7 @@ class BookingRepository {
         return try {
             db.collection("bookings")
                 .whereEqualTo("tutorId", tutorId)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .get()
                 .await()
                 .documents.mapNotNull { it.toObject(Booking::class.java) }
