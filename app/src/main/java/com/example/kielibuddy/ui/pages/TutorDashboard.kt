@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,7 +40,6 @@ import com.google.firebase.auth.FirebaseAuth
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel) {
-
     val userData by authViewModel.userData.observeAsState()
     val bookingViewModel: BookingViewModel = viewModel()
     val tutorBookings by bookingViewModel.studentBookings.collectAsState()
@@ -52,9 +49,8 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
     val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid != null) {
-            authViewModel.loadUserData(uid)
+        FirebaseAuth.getInstance().currentUser?.uid?.let {
+            authViewModel.loadUserData(it)
         }
     }
 
@@ -64,7 +60,6 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
             reviewViewModel.loadReviews(it)
         }
     }
-
 
     if (userData == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -77,31 +72,21 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
         topBar = {
             TopAppBar(
                 title = {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Dashboard",color = Color.White)
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("Dashboard", color = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Purple40
-                ),
-
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Purple40),
                 navigationIcon = {
-                    IconButton(onClick = { /* Handle back navigation */ }) {
-                       // Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    IconButton(onClick = { }) {
+                        // Left blank intentionally
                     }
                 },
                 actions = {
                     IconButton(onClick = { showMenu = !showMenu }) {
                         Icon(Icons.Filled.MoreVert, "Menu")
                     }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                         DropdownMenuItem(
                             text = { Text("Edit Profile") },
                             onClick = {
@@ -128,12 +113,8 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
             )
         },
         bottomBar = {
-            BottomNavigationBar(
-                navController = navController,
-                userRole = userData?.role ?: UserRole.TEACHER
-            )
+            BottomNavigationBar(navController = navController, userRole = userData?.role ?: UserRole.TEACHER)
         }
-
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -143,7 +124,6 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Tutor Profile Section
             TutorProfile(
                 user = userData,
                 languages = userData?.languagesSpoken ?: emptyList(),
@@ -159,16 +139,27 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
                 Text("View Public Profile", color = Color.White)
             }
 
+
             Button(
-                onClick = { navController.navigate("videoCall/lesson123") },
+                onClick = { navController.navigate("tutorEarnings") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4E2AB3))
             ) {
-                Text("Join Video", color = Color.White)
+                Text(text = "View Earnings", color = Color.White)
             }
 
-
             Spacer(modifier = Modifier.height(16.dp))
+
+
+//            Button(
+//                onClick = { navController.navigate("videoCall/lesson123") },
+//                modifier = Modifier.fillMaxWidth(),
+//                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4E2AB3))
+//            ) {
+//                Text("Join Video", color = Color.White)
+//            }
+//
+//            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -180,67 +171,15 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Upcoming Lessons
-            UpcomingLessonsCard(
-                lessons = tutorBookings,
-                navController = navController
-            )
+            UpcomingLessonsCard(lessons = tutorBookings, navController = navController)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Notification Buttons
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp), // Reduced outer padding
-                horizontalArrangement = Arrangement.spacedBy(8.dp) // Less spacing between items
-            ) {
-                Box(modifier = Modifier.weight(1f).height(100.dp)) {
-                    NotificationButton(
-                        title = "New Messages",
-                        count = 5,
-                        onClick = { /* TODO */ }
-                    )
-                }
-                Box(modifier = Modifier.weight(1f).height(100.dp)) {
-                    NotificationButton(
-                        title = "Pending Requests",
-                        count = 3,
-                        onClick = { /* TODO */ }
-                    )
-                }
-            }
-
-
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Action Buttons
-            Button(
-                onClick = { navController.navigate("tutorEarnings") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4E2AB3))
-            ) {
-                Text(text = "View Earnings", color = Color.White)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = { /* Approve Trial Lessons */ },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4E2AB3))
-            ) {
-                Text(text = "Approve Trial Lessons", color = Color.White)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Reviews Section
             ReviewList(reviews = reviews)
         }
     }
 }
+
 
 @Composable
 fun NotificationButton(
@@ -315,10 +254,8 @@ fun TutorProfile(user: UserModel?, languages: List<String>, rating: String) {
 fun UpcomingLessonsCard(lessons: List<Booking>, navController: NavController) {
     val topLessons = lessons.sortedBy { it.date }.take(2)
     val userRepo = remember { UserRepository() }
-    val scope = rememberCoroutineScope()
     val studentMap = remember { mutableStateMapOf<String, UserModel>() }
 
-    // Load student info
     LaunchedEffect(topLessons) {
         topLessons.forEach { booking ->
             if (!studentMap.containsKey(booking.studentId)) {
@@ -330,71 +267,88 @@ fun UpcomingLessonsCard(lessons: List<Booking>, navController: NavController) {
         }
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White,
-            contentColor = Color.Black
-        ),
-        border = BorderStroke(1.dp, Color(0xFF6A3DE2))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row (modifier = Modifier
-                .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween){
-                Text(
-                    "Upcoming Lesson", fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold, color = Color.Black,
-                    modifier = Modifier.padding(10.dp)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "Upcoming Lessons",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Button(
+                onClick = { navController.navigate("TutorScheduleScreen") },
+                shape = RoundedCornerShape(50),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.LightGray,
+                    contentColor = Color.Black
                 )
-                Button(
-                    onClick = { navController.navigate("TutorScheduleScreen") },
-                    shape = RoundedCornerShape(50),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.LightGray,
-                        contentColor = Color.Black
-                    )
-                ) {
-                    Text("View All")
-                }
+            ) {
+                Text("View All")
             }
-            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        if (topLessons.isEmpty()) {
+            Text("No upcoming lessons scheduled.", color = Color.Gray, modifier = Modifier.padding(16.dp))
+        } else {
             topLessons.forEach { booking ->
                 val student = studentMap[booking.studentId]
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
-                    if (!student?.profileImg.isNullOrBlank()) {
-                        Image(
-                            painter = rememberAsyncImagePainter(student?.profileImg),
-                            contentDescription = "Student Image",
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.LightGray)
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.Gray),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(student?.firstName?.firstOrNull()?.toString() ?: "S", color = Color.White)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F3F3)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (!student?.profileImg.isNullOrBlank()) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(student?.profileImg),
+                                    contentDescription = "Student Image",
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.LightGray)
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Gray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(student?.firstName?.firstOrNull()?.toString() ?: "S", color = Color.White)
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = student?.let { "Lesson with ${it.firstName}" } ?: booking.studentId,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(text = "${booking.date}, ${booking.timeSlot}", fontSize = 14.sp, color = Color.Gray)
+                            }
                         }
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(text = student?.let { "${it.firstName} ${it.lastName}" } ?: booking.studentId, fontWeight = FontWeight.Bold)
-                        Text(text = booking.timeSlot, fontSize = 12.sp, color = Color.Gray)
                     }
                 }
             }
         }
     }
 }
+
 
 
 @Composable
