@@ -21,6 +21,7 @@ import androidx.navigation.NavController
 import com.example.kielibuddy.repository.AvailabilityRepository
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
+import com.example.kielibuddy.ui.theme.Purple40
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import java.time.*
@@ -90,17 +91,16 @@ fun TutorDisplayCalendar(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        BackButton(navController = navController)
-                        Text(
-                            text = "Tutor Calendar",
-                            fontSize = 22.sp,
-                            color = Color.Black,
-                            textAlign = TextAlign.Center
-                        )
+                        Text("Tutor Availability", color = Color.White)
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 actions = {
@@ -116,11 +116,13 @@ fun TutorDisplayCalendar(
                             }
                         }
                     }) {
-                        Text("Save Availability")
+                        Text("Save", color = Color.White)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Purple40)
             )
-        },
+        }
+        ,
         bottomBar = {
             BottomNavigationBar(navController = navController)
         },
