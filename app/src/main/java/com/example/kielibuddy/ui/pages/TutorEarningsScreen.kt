@@ -39,26 +39,26 @@ fun TutorEarningsScreen(
         }
     }
     Scaffold(        topBar = {
-            TopAppBar(
-                title = {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Earnings", color = Color.White)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                actions = {
-                    Spacer(modifier = Modifier.width(48.dp))
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Purple40)
-            )
-        }
+        TopAppBar(
+            title = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Earnings", color = Color.White)
+                }
+            },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+            },
+            actions = {
+                Spacer(modifier = Modifier.width(48.dp))
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Purple40)
+        )
+    }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier

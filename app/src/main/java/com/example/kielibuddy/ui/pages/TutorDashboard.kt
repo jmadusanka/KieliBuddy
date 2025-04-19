@@ -36,6 +36,8 @@ import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.example.kielibuddy.viewmodel.ReviewViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.example.kielibuddy.viewmodel.EarningsViewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,8 +47,11 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
     val tutorBookings by bookingViewModel.studentBookings.collectAsState()
     val reviewViewModel = remember { ReviewViewModel() }
     val reviews by reviewViewModel.reviews.collectAsState()
+    val earningsViewModel: EarningsViewModel = viewModel()
+    val paymentHistory by earningsViewModel.paymentHistory.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
+
 
     LaunchedEffect(Unit) {
         FirebaseAuth.getInstance().currentUser?.uid?.let {
@@ -58,6 +63,7 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
         userData?.id?.let {
             bookingViewModel.loadTutorBookings(it)
             reviewViewModel.loadReviews(it)
+            earningsViewModel.loadEarningsForTutor(it)
         }
     }
 
@@ -124,11 +130,18 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val averageRating = if (reviews.isNotEmpty()) {
+                "%.1f".format(reviews.map { it.rating }.average()) + "/5 ⭐"
+            } else {
+                "No Rating"
+            }
+
             TutorProfile(
                 user = userData,
                 languages = userData?.languagesSpoken ?: emptyList(),
-                rating = "4.5/5 ⭐"
+                rating = averageRating
             )
+
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
@@ -161,13 +174,25 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
 //
 //            Spacer(modifier = Modifier.height(16.dp))
 
+            val totalEarnings = paymentHistory.sumOf { it.amount }
+            val totalStudents = paymentHistory.map { it.studentName }.distinct().count()
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                InfoCard(title = "Earnings", value = "€450", textColor = Color(0xFF6A3DE2))
-                InfoCard(title = "Students", value = "15 Students", textColor = Color(0xFF6A3DE2))
+                InfoCard(
+                    title = "Earnings",
+                    value = "€${"%.2f".format(totalEarnings)}",
+                    textColor = Color(0xFF6A3DE2)
+                )
+                InfoCard(
+                    title = "Students",
+                    value = "$totalStudents Students",
+                    textColor = Color(0xFF6A3DE2)
+                )
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -191,7 +216,7 @@ fun NotificationButton(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD1B3FF)),
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxSize() // Make the button fill the Box
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
