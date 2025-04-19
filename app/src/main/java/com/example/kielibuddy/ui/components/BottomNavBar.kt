@@ -1,8 +1,8 @@
 package com.example.kielibuddy.ui.components
 
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -20,6 +22,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.kielibuddy.R
 import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.ui.theme.KieliBuddyTheme
+import com.example.kielibuddy.ui.theme.Purple40
 
 sealed class BottomNavItem(
     val route: String,
@@ -31,11 +34,10 @@ sealed class BottomNavItem(
     object Calendar : BottomNavItem("tutorCalendar", R.drawable.ic_schedule, "Schedule")
 }
 
-
 @Composable
 fun BottomNavigationBar(
     navController: NavController,
-    userRole: UserRole = UserRole.STUDENT // Add this with a default
+    userRole: UserRole = UserRole.STUDENT
 ) {
     val items = listOf(
         BottomNavItem.Search,
@@ -52,11 +54,30 @@ fun BottomNavigationBar(
         items.forEach { item ->
             NavigationBarItem(
                 icon = {
-                    Icon(
-                        painter = painterResource(id = item.iconResId),
-                        contentDescription = item.title,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    if (item is BottomNavItem.Chat) {
+                        Box {
+                            Icon(
+                                painter = painterResource(id = item.iconResId),
+                                contentDescription = item.title,
+                                modifier = Modifier.size(24.dp)
+                            )
+
+                            // new message dot
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .offset(x = 6.dp, y = (-4).dp)
+                                    .clip(CircleShape)
+                                    .background(color = Purple40)
+                            )
+                        }
+                    } else {
+                        Icon(
+                            painter = painterResource(id = item.iconResId),
+                            contentDescription = item.title,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 },
                 label = {
                     Text(
