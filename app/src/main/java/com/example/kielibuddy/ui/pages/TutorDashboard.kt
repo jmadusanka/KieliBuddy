@@ -29,6 +29,7 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.Booking
 import com.example.kielibuddy.model.UserModel
+import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.repository.UserRepository
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.ui.components.ReviewList
@@ -127,8 +128,12 @@ fun TutorDashboard(modifier: Modifier = Modifier, navController: NavController, 
             )
         },
         bottomBar = {
-            BottomNavigationBar(navController = navController)
+            BottomNavigationBar(
+                navController = navController,
+                userRole = userData?.role ?: UserRole.TEACHER
+            )
         }
+
     ) { paddingValues ->
         Column(
             modifier = modifier

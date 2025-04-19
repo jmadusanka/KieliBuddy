@@ -18,6 +18,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.kielibuddy.R
+import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.ui.theme.KieliBuddyTheme
 
 sealed class BottomNavItem(
@@ -32,7 +33,10 @@ sealed class BottomNavItem(
 
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
+fun BottomNavigationBar(
+    navController: NavController,
+    userRole: UserRole = UserRole.STUDENT // Add this with a default
+) {
     val items = listOf(
         BottomNavItem.Search,
         BottomNavItem.Chat,
@@ -62,7 +66,11 @@ fun BottomNavigationBar(navController: NavController) {
                 },
                 selected = currentRoute == item.route,
                 onClick = {
-                    navController.navigate(item.route) {
+                    val destination = if (item is BottomNavItem.Calendar) {
+                        if (userRole == UserRole.TEACHER) "tutorCalendar" else "StudentScheduleScreen"
+                    } else item.route
+
+                    navController.navigate(destination) {
                         popUpTo(navController.graph.startDestinationId) {
                             saveState = true
                         }
@@ -74,6 +82,7 @@ fun BottomNavigationBar(navController: NavController) {
         }
     }
 }
+
 @Preview(showBackground = true)
 @Composable
 fun BottomNavigationBarPreview() {

@@ -107,7 +107,12 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
                 }
             )
         },
-        bottomBar = { BottomNavigationBar(navController = navController) }
+        bottomBar = {
+            BottomNavigationBar(
+                navController = navController,
+                userRole = userData?.role ?: UserRole.STUDENT
+            )
+        }
     ) { paddingValues ->
         Column(
             modifier = modifier
