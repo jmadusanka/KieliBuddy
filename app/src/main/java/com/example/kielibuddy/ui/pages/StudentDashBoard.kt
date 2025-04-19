@@ -3,10 +3,10 @@ package com.example.kielibuddy.ui.pages
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Edit
@@ -50,6 +50,7 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
     val tutors = remember { mutableStateOf(emptyList<UserModel>()) }
     val bookingViewModel: BookingViewModel = viewModel()
     val studentBookings by bookingViewModel.studentBookings.collectAsState()
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
@@ -81,16 +82,14 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
     }
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController = navController) }
-    ) { paddingValues ->
-        Column(modifier = modifier.padding(paddingValues).fillMaxSize()) {
+        topBar = {
             TopAppBar(
                 modifier = Modifier.height(56.dp),
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.White,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black,
+                    actionIconContentColor = Color.Black
                 ),
                 navigationIcon = {
                     BackButton(navController = navController)
@@ -107,103 +106,83 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
                     }
                 }
             )
-
+        },
+        bottomBar = { BottomNavigationBar(navController = navController) }
+    ) { paddingValues ->
+        Column(
+            modifier = modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+        ) {
             ProfileSectionWithMenu(userData, navController, authViewModel)
 
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            ProgressSection()
+            Spacer(modifier = Modifier.height(4.dp))
 
-                item {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    ProgressSection()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Upcoming Lesson", fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold, color = Color.Black,
+                    modifier = Modifier.padding(10.dp)
+                )
+                Button(
+                    onClick = { navController.navigate("StudentScheduleScreen") },
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.LightGray,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text("View All")
                 }
+            }
 
-                item {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row (modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween){
-                        Text(
-                            "Upcoming Lesson", fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold, color = Color.Black,
-                            modifier = Modifier.padding(10.dp)
-                        )
-                        Button(
-                            onClick = { navController.navigate("StudentScheduleScreen") },
-                            shape = RoundedCornerShape(50),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.LightGray,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            Text("View All")
-                        }
-                    }
+            ScheduleSection(navController = navController, bookings = studentBookings)
 
-
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Recommended Tutors",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                )
+                Button(
+                    onClick = { navController.navigate("list") },
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.LightGray,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text("View All")
                 }
+            }
 
-                item {
-                    ScheduleSection(navController = navController, bookings = studentBookings)
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Recommended Tutors",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                        )
-                        Button(
-                            onClick = { navController.navigate("list") },
-                            shape = RoundedCornerShape(50),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.LightGray,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            Text("View All")
-                        }
-                    }
-                }
-
-                items(tutors.value) { tutor ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(text = "${tutor.firstName} ${tutor.lastName}", fontWeight = FontWeight.Bold)
-                            Text(text = tutor.aboutMe ?: "", fontSize = 12.sp, color = Color.Gray)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(onClick = {
-                                navController.navigate("chat/${tutor.id}/${tutor.firstName}")
-                            }) {
-                                Text("Chat")
-                            }
-                        }
-                    }
+            Column {
+                tutors.value.forEach { tutor ->
+                    TutorCard(tutor = tutor, navController = navController)
                 }
             }
         }
     }
 }
-
 
 @Composable
 fun ProfileSectionWithMenu(user: UserModel?, navController: NavController, authViewModel: AuthViewModel) {
