@@ -257,10 +257,10 @@ fun TutorProfile(user: UserModel?, languages: List<String>, rating: String) {
             Image(
                 painter = rememberAsyncImagePainter(user?.profileImg),
                 contentDescription = "Tutor Profile",
+                contentScale = ContentScale.Crop, //
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp)),
-                contentScale = ContentScale.FillBounds
+                    .clip(RoundedCornerShape(16.dp))
             )
         }
 

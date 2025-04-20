@@ -32,6 +32,7 @@ import com.google.firebase.storage.FirebaseStorage
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 
@@ -140,9 +141,11 @@ fun EditableTutorProfilePage(navController: NavController, authViewModel: AuthVi
                 Image(
                     painter = rememberAsyncImagePainter(userData?.profileImg),
                     contentDescription = "Profile Image",
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(100.dp)
                         .clip(CircleShape)
+                        .background(Color.LightGray)
                         .clickable(enabled = !uploading) { launcher.launch("image/*") }
                 )
                 IconButton(

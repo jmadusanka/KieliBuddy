@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -113,7 +114,8 @@ fun EditableProfilePage(navController: NavController, authViewModel: AuthViewMod
                         .size(110.dp)
                         .clip(CircleShape)
                         .background(Color.LightGray)
-                        .clickable(enabled = !uploading) { launcher.launch("image/*") }
+                        .clickable(enabled = !uploading) { launcher.launch("image/*") },
+                    contentScale = ContentScale.Crop //  Ensures proper fill
                 )
                 IconButton(
                     onClick = { launcher.launch("image/*") },
