@@ -1,5 +1,6 @@
 package com.example.kielibuddy.ui.pages
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,6 +32,7 @@ import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kielibuddy.ui.theme.Purple40
+import java.net.URLEncoder
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -113,7 +115,7 @@ fun StudentScheduleScreen(
                             Text("Upcoming Lessons", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
                         items(upcomingBookings.sortedBy { it.date }) { booking ->
-                            BookingCard(booking = booking, viewerRole = roleMode, isPast = false)
+                            BookingCard(booking = booking, viewerRole = roleMode, isPast = false, navController)
                         }
                     }
 
@@ -123,7 +125,7 @@ fun StudentScheduleScreen(
                             Text("Past Lessons", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Gray)
                         }
                         items(pastBookings.sortedByDescending { it.date }) { booking ->
-                            BookingCard(booking = booking, viewerRole = roleMode, isPast = true)
+                            BookingCard(booking = booking, viewerRole = roleMode, isPast = true, navController)
                         }
                     }
                 }
@@ -135,7 +137,7 @@ fun StudentScheduleScreen(
 }
 
 @Composable
-fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false) {
+fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false, navController: NavController) {
     val now = LocalDateTime.now()
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -204,17 +206,18 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false)
                         val minutesLeft = durationUntilStart.toMinutes().toInt()
                         Text("Starts in $minutesLeft min", fontSize = 12.sp, color = Color.Red)
                     }
-                    if (!isPast) {
+                    //if (!isPast) {
+                        val channelName = URLEncoder.encode("lesson_123", "UTF-8")
                         Button(
-                            onClick = { /* TODO: link to video call */ },
-                            enabled = enableJoinButton,
+                            onClick = { navController.navigate("videoCall/$channelName/$otherUserId") },
+                            //enabled = enableJoinButton,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (enableJoinButton) MaterialTheme.colorScheme.primary else Color.Gray
                             )
                         ) {
                             Text("Join Now")
                         }
-                    }
+                   // }
                 }
 
 

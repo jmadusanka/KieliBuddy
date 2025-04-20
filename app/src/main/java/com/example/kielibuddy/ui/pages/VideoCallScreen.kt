@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -18,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -27,11 +29,18 @@ import io.agora.rtc2.*
 import io.agora.rtc2.video.VideoCanvas
 import io.agora.rtc2.video.VideoEncoderConfiguration
 import androidx.compose.ui.viewinterop.AndroidView
+import coil.compose.AsyncImage
+import com.example.kielibuddy.R
+import com.example.kielibuddy.model.UserModel
+import com.example.kielibuddy.repository.UserRepository
 import kotlinx.coroutines.delay
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideoCallScreen(navController: NavController, channelName: String, appId: String) {
+fun VideoCallScreen(navController: NavController, channelName: String, appId: String, remoteUserId: String) {
     val context = LocalContext.current
     val localSurfaceView = remember { SurfaceView(context) }
     val remoteSurfaceView = remember { SurfaceView(context) }
@@ -47,20 +56,38 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
     val view = LocalView.current
     var isSpeakerEnabled by remember { mutableStateOf(true) }
 
+    val userRepo = remember { UserRepository() }
+    var remoteUser by remember { mutableStateOf<UserModel?>(null) }
+
+    LaunchedEffect(remoteUserId) {
+        remoteUser = userRepo.getUserDetails(remoteUserId)
+    }
+
     val rtcEventHandler = object : IRtcEngineEventHandler() {
         override fun onJoinChannelSuccess(channel: String?, uid: Int, elapsed: Int) {
-            Log.d("AGORA", "✅ Joined channel: $channel as $uid")
             joined = true
             localUid = uid
+
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+            // Request audio focus for voice call
+            audioManager.requestAudioFocus(
+                null,
+                AudioManager.STREAM_VOICE_CALL,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+            )
+
+            // Delay speaker routing to ensure Agora finishes internal setup
             Handler(Looper.getMainLooper()).postDelayed({
-                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                 audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
                 audioManager.isSpeakerphoneOn = true
-                engine?.setEnableSpeakerphone(true)
 
-                Log.d("AUDIO", "Delayed speaker enable → ${audioManager.isSpeakerphoneOn}")
-            }, 300)
+                engine?.setEnableSpeakerphone(true)
+                engine?.setDefaultAudioRoutetoSpeakerphone(true)
+            }, 500)
         }
+
+
 
         override fun onUserJoined(uid: Int, elapsed: Int) {
             Log.d("AGORA", "🔥 Remote user joined: $uid")
@@ -174,6 +201,27 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
+        TopAppBar(
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = remoteUser?.profileImg,
+                        contentDescription = "Profile",
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = remoteUser?.firstName + " " + remoteUser?.lastName, color = Color.White)
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+            }
+        )
         Box(modifier = Modifier.weight(1f)) {
             if (joined) {
                 AndroidView(factory = { remoteSurfaceView }, modifier = Modifier.fillMaxSize())
@@ -182,7 +230,7 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 AndroidView(
                     factory = { localSurfaceView },
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(130.dp)
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
                 )
@@ -205,15 +253,6 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 )
             }
 
-            localUid?.let { uid ->
-                Text(
-                    text = "Local UID: $uid",
-                    color = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp)
-                )
-            }
 
             if (callActive) {
                 Text(
