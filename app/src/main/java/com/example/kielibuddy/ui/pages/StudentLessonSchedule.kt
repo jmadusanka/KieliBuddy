@@ -199,29 +199,33 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false,
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("${if (viewerRole == UserRole.STUDENT) "Tutor" else "Student"}: $fullName", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(fullName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text("Date: ${booking.date}", fontSize = 14.sp, color = Color.Gray)
                     Text("Time: ${booking.timeSlot}", fontSize = 14.sp, color = Color.Gray)
+
                     if (showCountdown) {
                         val minutesLeft = durationUntilStart.toMinutes().toInt()
                         Text("Starts in $minutesLeft min", fontSize = 12.sp, color = Color.Red)
                     }
-                    //if (!isPast) {
-                        val channelName = URLEncoder.encode("lesson_123", "UTF-8")
-                        Button(
-                            onClick = { navController.navigate("videoCall/$channelName/$otherUserId") },
-                            //enabled = enableJoinButton,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (enableJoinButton) MaterialTheme.colorScheme.primary else Color.Gray
-                            )
-                        ) {
-                            Text("Join Now")
-                        }
-                   // }
+
+                    val channelName = URLEncoder.encode("lesson_123", "UTF-8")
+                    Button(
+                        onClick = { navController.navigate("videoCall/$channelName/$otherUserId") },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (enableJoinButton) MaterialTheme.colorScheme.primary else Color.Gray
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.defaultMinSize(minHeight = 32.dp)
+                    ) {
+                        Text("Join Now", fontSize = 13.sp)
+                    }
+                }
+
+                // }
                 }
 
 
             }
         }
     }
-}
+
