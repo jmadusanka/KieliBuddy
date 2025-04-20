@@ -1,6 +1,10 @@
 package com.example.kielibuddy.ui.pages
 
 import android.Manifest
+import android.content.Context
+import android.media.AudioManager
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.SurfaceView
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -48,6 +52,14 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
             Log.d("AGORA", "✅ Joined channel: $channel as $uid")
             joined = true
             localUid = uid
+            Handler(Looper.getMainLooper()).postDelayed({
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+                audioManager.isSpeakerphoneOn = true
+                engine?.setEnableSpeakerphone(true)
+
+                Log.d("AUDIO", "Delayed speaker enable → ${audioManager.isSpeakerphoneOn}")
+            }, 300)
         }
 
         override fun onUserJoined(uid: Int, elapsed: Int) {
@@ -56,6 +68,7 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
             engine?.setupRemoteVideo(VideoCanvas(remoteSurfaceView, VideoCanvas.RENDER_MODE_HIDDEN, uid))
             isRemoteConnected = true
             callActive = true
+
         }
 
         override fun onUserOffline(uid: Int, reason: Int) {
@@ -78,6 +91,11 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                     setChannelProfile(Constants.CHANNEL_PROFILE_COMMUNICATION)
                     setClientRole(Constants.CLIENT_ROLE_BROADCASTER)
                     enableVideo()
+                    enableAudio()
+
+                    setDefaultAudioRoutetoSpeakerphone(true)
+                    setEnableSpeakerphone(true)
+
                     setVideoEncoderConfiguration(
                         VideoEncoderConfiguration(
                             VideoEncoderConfiguration.VD_640x360,
@@ -89,14 +107,18 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 }
 
                 rtc.setupLocalVideo(VideoCanvas(localSurfaceView, VideoCanvas.RENDER_MODE_HIDDEN, 0))
-                rtc.enableAudio()
+                rtc.setDefaultAudioRoutetoSpeakerphone(true)
                 rtc.setEnableSpeakerphone(true)
                 rtc.muteLocalAudioStream(false)
                 rtc.startPreview()
-                rtc.joinChannel(null, channelName, null, 0)
 
-                Log.d("AGORA", "📡 Joining channel: $channelName")
+                rtc.joinChannel(null, channelName, null, 0)
                 engine = rtc
+                Log.d("AGORA", "Speaker enabled: $isSpeakerEnabled")
+
+
+
+
             } else {
                 Log.e("AGORA", "❌ Permissions not granted")
             }
@@ -255,6 +277,9 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 onClick = {
                     isSpeakerEnabled = !isSpeakerEnabled
                     engine?.setEnableSpeakerphone(isSpeakerEnabled)
+
+                    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                    audioManager.isSpeakerphoneOn = isSpeakerEnabled
                 },
                 modifier = Modifier
                     .size(buttonSize)
