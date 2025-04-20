@@ -22,17 +22,19 @@ class EarningsViewModel : ViewModel() {
     fun loadEarningsForTutor(tutorId: String) {
         viewModelScope.launch {
             val db = FirebaseFirestore.getInstance()
-            val bookingsSnapshot = db.collection("bookings")
+            val purchasesSnapshot = db.collection("purchases")
                 .whereEqualTo("tutorId", tutorId)
                 .get()
                 .await()
 
-            val bookings = bookingsSnapshot.documents.mapNotNull { it.toObject(Booking::class.java) }
+            val sessions = purchasesSnapshot.documents.mapNotNull { doc ->
+                val data = doc.data ?: return@mapNotNull null
+                val amount = (data["amount"] as? Number)?.toDouble()?.div(100.0) ?: return@mapNotNull null
+                val studentId = data["studentId"] as? String ?: return@mapNotNull null
 
-            val sessions = mutableListOf<PaymentSession>()
-            for (booking in bookings) {
+                // You can later fetch user data if needed
                 val studentName = try {
-                    val userSnapshot = db.collection("users").document(booking.studentId).get().await()
+                    val userSnapshot = db.collection("users").document(studentId).get().await()
                     val firstName = userSnapshot.getString("firstName") ?: ""
                     val lastName = userSnapshot.getString("lastName") ?: ""
                     "$firstName $lastName"
@@ -40,24 +42,21 @@ class EarningsViewModel : ViewModel() {
                     "Unknown Student"
                 }
 
+                // Format the timestamp into a readable date
+                val timestamp = (data["timestamp"] as? Number)?.toLong() ?: 0L
                 val formattedDate = try {
-                    val parser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                     val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-                    formatter.format(parser.parse(booking.date) ?: Date())
+                    formatter.format(Date(timestamp))
                 } catch (e: Exception) {
-                    booking.date
+                    "Unknown"
                 }
 
-                val hours = String.format("%.1f", booking.durationMinutes / 60.0).toDouble()
-
-                sessions.add(
-                    PaymentSession(
-                        studentId = booking.studentId, // ✅ pass studentId here
-                        studentName = studentName,
-                        amount = booking.price.toDouble(),
-                        date = formattedDate,
-                        hours = hours
-                    )
+                PaymentSession(
+                    studentId = studentId,
+                    studentName = studentName,
+                    amount = amount,
+                    date = formattedDate,
+                    hours = 1.0 // or 0.0 if not tracked in purchases
                 )
             }
 
