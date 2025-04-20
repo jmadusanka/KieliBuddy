@@ -7,45 +7,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.example.kielibuddy.model.UserRole
-
-import com.example.kielibuddy.ui.pages.ChatScreen
-import com.example.kielibuddy.ui.pages.EditableProfilePage
-import com.example.kielibuddy.ui.pages.EditableTutorProfilePage
-import com.example.kielibuddy.ui.pages.ForgotPasswordPage
-import com.example.kielibuddy.ui.pages.HomePage
-import com.example.kielibuddy.ui.pages.LoginPage
-import com.example.kielibuddy.ui.pages.ProfileScreen
-import com.example.kielibuddy.ui.pages.SamplePageGallery
-import com.example.kielibuddy.ui.pages.SignupCompletePage
-
-import com.example.kielibuddy.ui.pages.SignupPage
-import com.example.kielibuddy.ui.pages.StudentDashBoard
-import com.example.kielibuddy.ui.pages.TutorListScreen
-import com.example.kielibuddy.ui.pages.WelcomePage
+import com.example.kielibuddy.ui.pages.*
 import com.example.kielibuddy.ui.screens.tutor.TutorHomeScreen.TutorDashboard
 import com.example.kielibuddy.viewmodel.AuthState
 import com.example.kielibuddy.viewmodel.AuthViewModel
 import com.example.kielibuddy.viewmodel.ChatViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.example.kielibuddy.ui.pages.ChatInbox
-import com.example.kielibuddy.ui.pages.StudentBookingCalendar
-import com.example.kielibuddy.ui.pages.StudentPublicProfileScreen
-import com.example.kielibuddy.ui.pages.StudentScheduleScreen
-import com.example.kielibuddy.ui.pages.TutorDisplayCalendar
-import com.example.kielibuddy.ui.pages.TutorEarningsScreen
-import com.example.kielibuddy.ui.pages.VideoCallScreen
 
 @Composable
-fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, activity: Activity) {
-    val navController = rememberNavController()
+fun Navigation(
+    modifier: Modifier = Modifier,
+    authViewModel: AuthViewModel,
+    activity: Activity,
+    navController: NavHostController
+) {
     val authState by authViewModel.authState.observeAsState()
     val chatViewModel: ChatViewModel = viewModel()
+
     // Call checkAuthStatus when app starts
     LaunchedEffect(Unit) {
         authViewModel.checkAuthStatus(navController)
@@ -72,7 +55,6 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
         composable("signup") {
             SignupPage(modifier, navController, authViewModel)
         }
-
         composable("forgotPassword") {
             ForgotPasswordPage(navController = navController, authViewModel = authViewModel)
         }
@@ -82,11 +64,9 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
         composable("completeSignup") {
             SignupCompletePage(navController = navController, authViewModel = authViewModel)
         }
-
         composable("studentHome") {
             StudentDashBoard(navController = navController, authViewModel = authViewModel)
         }
-
         composable("tutorHome") {
             TutorDashboard(navController = navController, authViewModel = authViewModel)
         }
@@ -96,49 +76,36 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
         composable("gallery") {
             SamplePageGallery(navController = navController)
         }
-
-//        composable("chatScreen") {
-//            StudentChatScreen(navController = navController)
-//        }
         composable("profile") {
             ProfileScreen(navController = navController, authViewModel = authViewModel)
         }
-
         composable("list") {
             TutorListScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("calender") {
             TutorDisplayCalendar(navController = navController)
         }
-        //  bottom navigation routes
         composable("search") {
             TutorListScreen(navController = navController, authViewModel = authViewModel)
         }
-
         composable("tutorCalendar") {
             TutorDisplayCalendar(navController = navController)
         }
         composable("tutorEditProfile") {
             EditableTutorProfilePage(navController = navController, authViewModel = authViewModel)
         }
-
         composable("StudentPublicProfileScreen") {
             StudentPublicProfileScreen(navController = navController, authViewModel = authViewModel)
         }
-
         composable("StudentScheduleScreen") {
             StudentScheduleScreen(navController = navController, authViewModel = authViewModel)
         }
-
         composable("StudentBookingCalendar") {
             StudentBookingCalendar(navController = navController)
         }
-
         composable("TutorScheduleScreen") {
             StudentScheduleScreen(navController = navController, authViewModel = authViewModel, roleMode = UserRole.TEACHER)
         }
-
-
         composable("chat/{receiverId}/{receiverName}") { backStackEntry ->
             val receiverId = backStackEntry.arguments?.getString("receiverId") ?: ""
             val receiverName = backStackEntry.arguments?.getString("receiverName") ?: ""
@@ -151,7 +118,6 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
                 receiverRole = UserRole.TEACHER
             )
         }
-
         composable("inbox") {
             ChatInbox(
                 navController = navController,
@@ -159,7 +125,6 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
                 currentUser = authViewModel.userData.value!!
             )
         }
-
         composable("videoCall/{channelName}") { backStackEntry ->
             val channelName = backStackEntry.arguments?.getString("channelName") ?: ""
             VideoCallScreen(
@@ -168,7 +133,6 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
                 appId = "52d90b7c9c4e4416b229514e958b9c74"
             )
         }
-
         composable("tutorPublicProfile/{tutorId}") { backStackEntry ->
             val tutorId = backStackEntry.arguments?.getString("tutorId") ?: ""
             ProfileScreen(
@@ -177,7 +141,6 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
                 tutorId = tutorId
             )
         }
-
         composable(
             route = "StudentBooking/{tutorId}?isTrial={isTrial}",
             arguments = listOf(
@@ -197,11 +160,14 @@ fun Navigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, acti
                 isTrial = isTrial
             )
         }
-
         composable("tutorEarnings") {
             TutorEarningsScreen(navController = navController)
         }
+        composable("payment_success") {
+            PaymentSuccessScreen(navController)
+        }
+        composable("payment_cancelled") {
+            PaymentCancelledScreen(navController)
+        }
     }
 }
-
-

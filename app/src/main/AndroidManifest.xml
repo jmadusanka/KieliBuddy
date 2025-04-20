@@ -27,11 +27,12 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.KieliBuddy"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+                <data android:scheme="kielibuddy" android:host="payment-success" />
             </intent-filter>
         </activity>
         <service

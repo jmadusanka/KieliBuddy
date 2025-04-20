@@ -1,12 +1,10 @@
 package com.example.kielibuddy.ui.pages
 
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -17,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -26,11 +23,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.Booking
 import com.example.kielibuddy.model.BookingStatus
@@ -38,12 +38,14 @@ import com.example.kielibuddy.model.LessonType
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.repository.AvailabilityRepository
 import com.example.kielibuddy.repository.UserRepository
+import com.example.kielibuddy.repository.createStripeCheckoutSession
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
-import createStripeCheckoutSession
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.*
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -64,13 +66,32 @@ fun StudentBookingCalendar(
     var showConfirmationDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val bookingViewModel: BookingViewModel = viewModel()
+    val wasInPaymentFlow = remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val availabilityRepo = remember { AvailabilityRepository() }
     val userRepo = remember { UserRepository() }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     var availabilityMap by remember { mutableStateOf<Map<LocalDate, List<String>>>(emptyMap()) }
     var tutor by remember { mutableStateOf<UserModel?>(null) }
     val bookings by bookingViewModel.studentBookings.collectAsState()
+
+    // ✅ Proper redirect using Handler for safe UI access
+    DisposableEffect(Unit) {
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && wasInPaymentFlow.value) {
+                wasInPaymentFlow.value = false
+                handler.post {
+                    Toast.makeText(context, "Welcome back! Booking confirmed.", Toast.LENGTH_SHORT).show()
+                    navController.navigate("payment_success")
+                }
+            }
+        }
+        val lifecycle = lifecycleOwner.lifecycle
+        lifecycle.addObserver(lifecycleObserver)
+        onDispose { lifecycle.removeObserver(lifecycleObserver) }
+    }
 
     LaunchedEffect(tutorId) {
         tutorId?.let {
@@ -109,24 +130,17 @@ fun StudentBookingCalendar(
         topBar = {
             TopAppBar(
                 title = { Text("Book Session", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    BackButton(navController = navController)
-                }
+                navigationIcon = { BackButton(navController = navController) }
             )
         },
         bottomBar = { BottomNavigationBar(navController = navController) },
         content = { paddingValues ->
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -134,40 +148,22 @@ fun StudentBookingCalendar(
                         Image(
                             painter = rememberAsyncImagePainter(tutor!!.profileImg),
                             contentDescription = "Tutor Profile",
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(CircleShape)
-                                .background(Color.White),
+                            modifier = Modifier.size(50.dp).clip(CircleShape).background(Color.White),
                             contentScale = ContentScale.Crop
                         )
-                        Text(
-                            text = tutorName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(text = tutorName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     } else {
                         Box(
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)),
+                            modifier = Modifier.size(50.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = tutorName.first().toString().uppercase(),
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            )
+                            Text(text = tutorName.first().toString().uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
                     }
-
                 }
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -198,10 +194,7 @@ fun StudentBookingCalendar(
                     }
                 }
 
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
-                ) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = 8.dp)) {
                     val daysOfWeek = (0..6).map { currentWeekStartDate.plusDays(it.toLong()) }
                     items(daysOfWeek) { date ->
                         val isWeekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY
@@ -245,7 +238,6 @@ fun StudentBookingCalendar(
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2))
-
                 ) {
                     Text("Book Now", fontWeight = FontWeight.Bold)
                 }
@@ -257,9 +249,7 @@ fun StudentBookingCalendar(
                     AlertDialog(
                         onDismissRequest = { showConfirmationDialog = false },
                         title = { Text("Confirm Booking") },
-                        text = {
-                            Text(confirmationText)
-                        },
+                        text = { Text(confirmationText) },
                         confirmButton = {
                             Button(onClick = {
                                 val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
@@ -276,20 +266,22 @@ fun StudentBookingCalendar(
                                     status = BookingStatus.BOOKED
                                 )
 
-                                Log.d("BookingMeta", booking.toString())
-
                                 coroutineScope.launch {
                                     if (!isTrial) {
                                         createStripeCheckoutSession(
-                                            amountInCents = booking.price * 100,
+                                            amountInCents = booking.price * 100, // convert € to cents
                                             booking = booking,
                                             onSuccess = { url ->
                                                 val intent = CustomTabsIntent.Builder().build()
+                                                wasInPaymentFlow.value = true
                                                 intent.launchUrl(context, Uri.parse(url))
                                             },
-                                            onError = { error ->
-                                                println("StripeCheckout Stripe Error: $error")
-                                                Toast.makeText(context, "Payment failed: $error", Toast.LENGTH_LONG).show()
+                                            onError = {
+                                                coroutineScope.launch {
+                                                    withContext(Dispatchers.Main) {
+                                                        Toast.makeText(context, "Payment failed: $it", Toast.LENGTH_LONG).show()
+                                                    }
+                                                }
                                             }
                                         )
                                     } else {
@@ -359,4 +351,5 @@ fun DateItem(
         }
     }
 }
+
 

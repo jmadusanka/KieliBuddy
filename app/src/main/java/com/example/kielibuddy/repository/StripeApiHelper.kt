@@ -1,3 +1,4 @@
+package com.example.kielibuddy.repository
 import android.util.Log
 import com.example.kielibuddy.model.Booking
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +21,7 @@ suspend fun createStripeCheckoutSession(
 
             val jsonBody = JSONObject().apply {
                 put("amount", amountInCents)
-                put("successUrl", "https://example.com/success")
+                put("successUrl", "https://us-central1-kielibudy.cloudfunctions.net/paymentSuccessRedirect")
                 put("cancelUrl", "https://example.com/cancel")
                 put("metadata", JSONObject().apply {
                     put("tutorId", booking.tutorId)
