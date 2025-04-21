@@ -99,7 +99,20 @@ fun StudentScheduleScreen(
                 val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 val now = LocalDateTime.now()
 
-                val (upcomingBookings, pastBookings) = bookings.partition { booking ->
+                val sortedBookings = remember(bookings) {
+                    bookings.sortedWith(compareBy<Booking> {
+                        LocalDateTime.parse("${it.date} ${it.timeSlot.split(" - ").first()}", formatter)
+                    }.thenComparing { booking ->
+                        val dateTimeStr = "${booking.date} ${booking.timeSlot.split(" - ").first()}"
+                        try {
+                            LocalDateTime.parse(dateTimeStr, formatter)
+                        } catch (e: Exception) {
+                            LocalDateTime.MIN
+                        }
+                    })
+                }
+
+                val (upcomingBookings, pastBookings) = sortedBookings.partition { booking ->
                     val dateTime = try {
                         val dateTimeStr = "${booking.date} ${booking.timeSlot.split(" - ").first()}"
                         LocalDateTime.parse(dateTimeStr, formatter)
@@ -114,7 +127,7 @@ fun StudentScheduleScreen(
                         item {
                             Text("Upcoming Lessons", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
-                        items(upcomingBookings.sortedBy { it.date }) { booking ->
+                        items(upcomingBookings) { booking ->
                             BookingCard(booking = booking, viewerRole = roleMode, isPast = false, navController)
                         }
                     }
@@ -124,7 +137,7 @@ fun StudentScheduleScreen(
                             Spacer(modifier = Modifier.height(16.dp))
                             Text("Past Lessons", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Gray)
                         }
-                        items(pastBookings.sortedByDescending { it.date }) { booking ->
+                        items(pastBookings) { booking ->
                             BookingCard(booking = booking, viewerRole = roleMode, isPast = true, navController)
                         }
                     }
@@ -210,22 +223,39 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false,
 
                     val channelName = URLEncoder.encode("lesson_123", "UTF-8")
                     Button(
+
                         onClick = { navController.navigate("videoCall/$channelName/$otherUserId") },
+
                         colors = ButtonDefaults.buttonColors(
+
                             containerColor = if (enableJoinButton) MaterialTheme.colorScheme.primary else Color.Gray
+
                         ),
+
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+
                         modifier = Modifier.defaultMinSize(minHeight = 32.dp)
+
                     ) {
+
                         Text("Join Now", fontSize = 13.sp)
+
                     }
+
                 }
 
-                // }
-                }
 
+
+// }
 
             }
+
+
+
+
+
         }
+
     }
 
+}

@@ -28,11 +28,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.Booking
-import com.example.kielibuddy.model.LessonType
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.model.UserRole
-import com.example.kielibuddy.repository.UserRepository
-import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.viewmodel.AuthViewModel
@@ -40,7 +37,6 @@ import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -57,7 +53,6 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
     LaunchedEffect(Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null && userData == null) {
-            authViewModel.loadUserData(uid)
             authViewModel.loadUserData(uid)
         }
 
@@ -94,17 +89,15 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
                         Text("Student Dashboard", color = Color.White)
                     }
                 },
-                // No back button here because it's a home screen
                 navigationIcon = {},
                 actions = {
-                    Spacer(modifier = Modifier.width(48.dp)) // To balance layout, just like in earnings screen
+                    Spacer(modifier = Modifier.width(48.dp)) // To balance layout
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Purple40
                 )
             )
-        }
-        ,
+        },
         bottomBar = {
             BottomNavigationBar(
                 navController = navController,
@@ -166,7 +159,7 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
                     color = Color.Black,
                 )
                 Button(
-                    onClick = { navController.navigate("list") },
+                    onClick = { navController.navigate("tutorList") },
                     shape = RoundedCornerShape(50),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -286,8 +279,6 @@ fun ProgressSection() {
 
 @Composable
 fun ScheduleSection(navController: NavController, bookings: List<Booking>) {
-    val userRepo = remember { UserRepository() }
-    val studentMap = remember { mutableStateMapOf<String, UserModel>() }
     val now = LocalTime.now()
     val today = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -297,118 +288,31 @@ fun ScheduleSection(navController: NavController, bookings: List<Booking>) {
             val lessonDate = LocalDate.parse(booking.date)
             val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
 
-            if (lessonDate.isAfter(today)) {
-                true
-            } else if (lessonDate.isEqual(today) && startTime != null && startTime.isAfter(now)) {
-                true
-            } else {
-                false
-            }
+            lessonDate.isAfter(today) || (lessonDate.isEqual(today) && startTime != null && startTime.isAfter(now))
         }.sortedBy { booking ->
             val lessonDate = LocalDate.parse(booking.date)
             val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
-            if (lessonDate.isEqual(today) && startTime != null) {
-                startTime.toSecondOfDay() - now.toSecondOfDay() // Sort by time difference today
-            } else if (lessonDate.isEqual(today) && startTime == null) {
-                Int.MAX_VALUE
-            } else {
-                val todayStartOfDay = today.atStartOfDay().toLocalTime()
-                val lessonDateStartOfDay = lessonDate.atStartOfDay().toLocalTime()
-                lessonDate.compareTo(today)
-            }
-        }.take(3)
-    }
 
-    LaunchedEffect(upcomingLessons) {
-        upcomingLessons.forEach { booking ->
-            if (!studentMap.containsKey(booking.tutorId)) {
-                val tutor = userRepo.getUserDetails(booking.tutorId)
-                if (tutor != null) {
-                    studentMap[booking.tutorId] = tutor
-                }
+            if (lessonDate.isEqual(today) && startTime != null) {
+                "${lessonDate.toString()} ${startTime.toString()}"
+            } else {
+                lessonDate.toString()
             }
-        }
+        }.take(2)
     }
 
     Column(modifier = Modifier.padding(horizontal = 10.dp)) {
         if (upcomingLessons.isEmpty()) {
             Text("No upcoming lessons scheduled.", color = Color.Gray, modifier = Modifier.padding(16.dp))
         } else {
-            upcomingLessons.forEach { booking -> // Use upcomingLessons here
-                val tutor = studentMap[booking.tutorId]
-                val isToday = LocalDate.parse(booking.date) == today
-                val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
-                val minutesUntil = startTime?.let { Duration.between(now, it).toMinutes() } ?: Long.MAX_VALUE
-                val showJoinButton = minutesUntil in -5..55
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F3F3)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (!tutor?.profileImg.isNullOrBlank()) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(tutor?.profileImg),
-                                    contentDescription = "Tutor Image",
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.LightGray)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Gray),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(tutor?.firstName?.firstOrNull()?.toString() ?: "T", color = Color.White)
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text("Lesson with ${tutor?.firstName ?: "Your tutor"}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                Text("${booking.date}, ${booking.timeSlot}", fontSize = 14.sp, color = Color.Gray)
-                                if (isToday) {
-                                    Text("Today", fontSize = 12.sp, color = Color(0xFF4E2AB3), fontWeight = FontWeight.Bold)
-                                }
-                                if (minutesUntil in 0..60) {
-                                    Text("Starts in $minutesUntil min", fontSize = 12.sp, color = Color(0xFF6A3DE2))
-                                }
-                                if (booking.lessonType == LessonType.TRIAL) {
-                                    Text(
-                                        text = "Trial",
-                                        color = Color(0xFF4E2AB3),
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    )
-                                }
-
-                            }
-                        }
-
-                        if (showJoinButton) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(
-                                onClick = { navController.navigate("join_session") },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A3DE2)),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                            ) {
-                                Text("Join Now", color = Color.White)
-                            }
-                        }
-                    }
-                }
+            upcomingLessons.forEach { booking ->
+                BookingCard(
+                    booking = booking,
+                    viewerRole = UserRole.STUDENT,
+                    isPast = false,
+                    navController = navController
+                )
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
