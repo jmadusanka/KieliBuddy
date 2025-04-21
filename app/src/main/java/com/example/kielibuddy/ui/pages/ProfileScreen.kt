@@ -20,9 +20,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.UserModel
@@ -30,6 +30,7 @@ import com.example.kielibuddy.ui.components.ReviewForm
 import com.example.kielibuddy.ui.components.ReviewList
 import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.viewmodel.AuthViewModel
+import com.example.kielibuddy.viewmodel.EarningsViewModel
 import com.example.kielibuddy.viewmodel.ReviewViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -40,14 +41,14 @@ fun ProfileScreen(
     modifier: Modifier = Modifier,
     navController: NavController,
     authViewModel: AuthViewModel,
-    tutorId: String? = null //  Used for viewing public tutor profile
+    tutorId: String? = null
 ) {
     val reviewViewModel = remember { ReviewViewModel() }
+    val earningsViewModel: EarningsViewModel = viewModel()
     var userData by remember { mutableStateOf<UserModel?>(null) }
 
     LaunchedEffect(tutorId) {
         if (tutorId != null) {
-            // Load public tutor profile from Firestore
             val snapshot = FirebaseFirestore.getInstance()
                 .collection("users")
                 .document(tutorId)
@@ -55,16 +56,19 @@ fun ProfileScreen(
                 .await()
             userData = snapshot.toObject(UserModel::class.java)
         } else {
-            // Load current user's profile
             userData = authViewModel.userData.value
         }
     }
 
     LaunchedEffect(userData?.id) {
-        userData?.id?.let { reviewViewModel.loadReviews(it) }
+        userData?.id?.let {
+            reviewViewModel.loadReviews(it)
+            earningsViewModel.loadEarningsForTutor(it)
+        }
     }
 
     val reviews by reviewViewModel.reviews.collectAsState()
+    val paymentHistory by earningsViewModel.paymentHistory.collectAsState()
 
     if (userData == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -73,14 +77,16 @@ fun ProfileScreen(
         return
     }
 
+    val rating = if (reviews.isNotEmpty()) "%.1f/5 ★".format(reviews.map { it.rating }.average()) else "No Rating"
+    val totalEarnings = paymentHistory.sumOf { it.amount } / 100.0
+    val totalHours = paymentHistory.sumOf { it.hours }
+    val totalStudents = paymentHistory.map { it.studentId }.distinct().count()
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text("Profile", color = Color.White)
                     }
                 },
@@ -89,15 +95,9 @@ fun ProfileScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                actions = {
-                    Spacer(modifier = Modifier.width(48.dp))
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Purple40
-                )
+                actions = { Spacer(modifier = Modifier.width(48.dp)) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Purple40)
             )
-
-
         }
     ) { innerPadding ->
         Box(
@@ -106,11 +106,7 @@ fun ProfileScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 80.dp)
-            ) {
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(bottom = 80.dp)) {
                 item {
                     if (!userData?.introVideoUrl.isNullOrEmpty()) {
                         AndroidView(
@@ -121,28 +117,21 @@ fun ProfileScreen(
                                     start()
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
+                            modifier = Modifier.fillMaxWidth().height(200.dp)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Image(
                             painter = rememberAsyncImagePainter(userData?.profileImg),
                             contentDescription = "Profile Picture",
-                            modifier = Modifier
-                                .size(70.dp)
-                                .clip(CircleShape)
-                                .border(2.dp, Color.Gray, CircleShape),
+                            modifier = Modifier.size(70.dp).clip(CircleShape).border(2.dp, Color.Gray, CircleShape),
                             contentScale = ContentScale.Crop
                         )
 
@@ -156,25 +145,23 @@ fun ProfileScreen(
                     HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Text(text = "4.5/5 ★", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text(text = rating, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                             Text(text = "Rating", style = MaterialTheme.typography.bodySmall)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Text(text = "€${userData?.price50Min ?: "0"}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text(text = "€${userData?.price50Min ?: 0}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                             Text(text = "Per hour", style = MaterialTheme.typography.bodySmall)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Text(text = "${userData?.lessonCount ?: 0}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text(text = "${"%.1f".format(totalHours)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                             Text(text = "Hours", style = MaterialTheme.typography.bodySmall)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Text(text = "0", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text(text = "$totalStudents", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                             Text(text = "Students", style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -182,12 +169,7 @@ fun ProfileScreen(
                     HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        horizontalAlignment = Alignment.Start
-                    ) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalAlignment = Alignment.Start) {
                         Text(text = "About me", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(text = userData?.aboutMe ?: "", style = MaterialTheme.typography.bodyMedium)
@@ -205,9 +187,7 @@ fun ProfileScreen(
                         shape = RoundedCornerShape(24.dp),
                         border = BorderStroke(1.dp, Color.Gray),
                         interactionSource = remember { MutableInteractionSource() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp)
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
                     ) {
                         Text("See my schedule")
                     }
@@ -215,25 +195,18 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     userData?.id?.let { tutorId ->
-                        ReviewForm(
-                            tutorId = tutorId,
-                            reviewViewModel = reviewViewModel
-                        )
-
+                        ReviewForm(tutorId = tutorId, reviewViewModel = reviewViewModel)
                         ReviewList(reviews = reviews)
                     }
                 }
             }
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(vertical = 16.dp),
+                modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = { navController.navigate("chat/${tutorId}/${ userData?.firstName}") },
+                    onClick = { navController.navigate("chat/${tutorId}/${userData?.firstName}") },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.weight(1f)
