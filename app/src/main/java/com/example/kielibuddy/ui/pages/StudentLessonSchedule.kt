@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -233,8 +234,17 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false,
 
                 if (!isPast) {
                     val channelName = URLEncoder.encode("lesson_123", "UTF-8")
+                    val context = LocalContext.current
+
                     Button(
-                        onClick = { navController.navigate("videoCall/$channelName/$otherUserId") },
+
+                            onClick = {
+                        if (enableJoinButton) {
+                            navController.navigate("videoCall/$channelName/$otherUserId")
+                        } else {
+                            Toast.makeText(context, "You can only join 5 minutes before the lesson.", Toast.LENGTH_SHORT).show()
+                        }
+                    },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (enableJoinButton) MaterialTheme.colorScheme.primary else Color.Gray
                         ),

@@ -247,7 +247,7 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Request a trial lesson", color = Color.White)
+                    Text("Try a Free Lesson", color = Color.White)
                 }
             }
         }
