@@ -37,7 +37,9 @@ import com.example.kielibuddy.viewmodel.BookingViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -117,10 +119,12 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
             ProgressSection()
             Spacer(modifier = Modifier.height(4.dp))
 
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp),
+                    .padding(10.dp)
+                    .padding(end = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -148,7 +152,8 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp),
+                    .padding(10.dp)
+                    .padding(end = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -159,7 +164,7 @@ fun StudentDashBoard(modifier: Modifier = Modifier, navController: NavController
                     color = Color.Black,
                 )
                 Button(
-                    onClick = { navController.navigate("tutorList") },
+                    onClick = { navController.navigate("list") },
                     shape = RoundedCornerShape(50),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -279,24 +284,26 @@ fun ProgressSection() {
 
 @Composable
 fun ScheduleSection(navController: NavController, bookings: List<Booking>) {
-    val now = LocalTime.now()
-    val today = LocalDate.now()
-    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+    val now = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val lessonDuration = Duration.ofMinutes(60)
 
     val upcomingLessons = remember(bookings) {
         bookings.filter { booking ->
-            val lessonDate = LocalDate.parse(booking.date)
-            val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
+            val dateTimeStr = "${booking.date} ${booking.timeSlot.split(" - ").first()}"
+            val startDateTime = try {
+                LocalDateTime.parse(dateTimeStr, formatter)
+            } catch (e: Exception) {
+                null
+            }
 
-            lessonDate.isAfter(today) || (lessonDate.isEqual(today) && startTime != null && startTime.isAfter(now))
+            startDateTime?.plus(lessonDuration)?.isAfter(now) == true
         }.sortedBy { booking ->
-            val lessonDate = LocalDate.parse(booking.date)
-            val startTime = booking.timeSlot.split(" - ").firstOrNull()?.let { LocalTime.parse(it, formatter) }
-
-            if (lessonDate.isEqual(today) && startTime != null) {
-                "${lessonDate.toString()} ${startTime.toString()}"
-            } else {
-                lessonDate.toString()
+            val dateTimeStr = "${booking.date} ${booking.timeSlot.split(" - ").first()}"
+            try {
+                LocalDateTime.parse(dateTimeStr, formatter)
+            } catch (e: Exception) {
+                LocalDateTime.MAX
             }
         }.take(2)
     }

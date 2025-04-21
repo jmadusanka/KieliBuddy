@@ -112,15 +112,18 @@ fun StudentScheduleScreen(
                     })
                 }
 
+                val lessonDuration = Duration.ofMinutes(60) // Assuming lessons last 1 hour
                 val (upcomingBookings, pastBookings) = sortedBookings.partition { booking ->
-                    val dateTime = try {
-                        val dateTimeStr = "${booking.date} ${booking.timeSlot.split(" - ").first()}"
+                    val dateTimeStr = "${booking.date} ${booking.timeSlot.split(" - ").first()}"
+                    val startDateTime = try {
                         LocalDateTime.parse(dateTimeStr, formatter)
                     } catch (e: Exception) {
                         LocalDateTime.MIN
                     }
-                    dateTime.isAfter(now)
+                    val endDateTime = startDateTime.plus(lessonDuration)
+                    now.isBefore(endDateTime) // Stay in upcoming if current time is before lesson ends
                 }
+
 
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (upcomingBookings.isNotEmpty()) {
@@ -164,7 +167,9 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false,
 
     val durationUntilStart = Duration.between(now, startDateTime)
     val showCountdown = durationUntilStart.toHours() <= 1 && durationUntilStart.toMinutes() > 5
-    val enableJoinButton = durationUntilStart.toMinutes() <= 5 && !isPast
+    val lessonDuration = Duration.ofMinutes(60) // assuming 1 hour lessons
+    val endDateTime = startDateTime.plus(lessonDuration)
+    val enableJoinButton = now.isAfter(startDateTime.minusMinutes(5)) && now.isBefore(endDateTime) && !isPast
 
     var otherUser by remember { mutableStateOf<UserModel?>(null) }
     val userRepo = remember { UserRepository() }
@@ -221,27 +226,23 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false,
                         Text("Starts in $minutesLeft min", fontSize = 12.sp, color = Color.Red)
                     }
 
+
+
+
+                }
+
+                if (!isPast) {
                     val channelName = URLEncoder.encode("lesson_123", "UTF-8")
                     Button(
-
                         onClick = { navController.navigate("videoCall/$channelName/$otherUserId") },
-
                         colors = ButtonDefaults.buttonColors(
-
                             containerColor = if (enableJoinButton) MaterialTheme.colorScheme.primary else Color.Gray
-
                         ),
-
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-
                         modifier = Modifier.defaultMinSize(minHeight = 32.dp)
-
                     ) {
-
                         Text("Join Now", fontSize = 13.sp)
-
                     }
-
                 }
 
 
