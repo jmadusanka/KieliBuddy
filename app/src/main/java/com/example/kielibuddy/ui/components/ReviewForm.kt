@@ -14,7 +14,8 @@ import java.util.*
 @Composable
 fun ReviewForm(
     tutorId: String,
-    reviewViewModel: ReviewViewModel
+    reviewViewModel: ReviewViewModel,
+    onReviewSubmit: () -> Unit
 ) {
     var rating by remember { mutableStateOf(0) }
     var comment by remember { mutableStateOf(TextFieldValue("")) }
@@ -59,15 +60,17 @@ fun ReviewForm(
                     tutorId = tutorId,
                     studentId = currentUserId,
                     rating = rating,
-                    comment = comment.text, //  store in `comment`
+                    comment = comment.text,
                     timestamp = System.currentTimeMillis()
                 )
                 reviewViewModel.submitReview(
                     review,
                     onSuccess = {
+
                         rating = 0
                         comment = TextFieldValue("")
                         errorMessage = null
+                        onReviewSubmit()
                     },
                     onError = { message ->
                         errorMessage = message

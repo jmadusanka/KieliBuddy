@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,18 +26,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import io.agora.rtc2.*
 import io.agora.rtc2.video.VideoCanvas
 import io.agora.rtc2.video.VideoEncoderConfiguration
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
-import com.example.kielibuddy.R
 import com.example.kielibuddy.model.UserModel
 import com.example.kielibuddy.repository.UserRepository
+import com.example.kielibuddy.ui.components.ReviewForm
+import com.example.kielibuddy.viewmodel.ReviewViewModel
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
-import java.io.File
-import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +58,9 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
     var isRemoteConnected by remember { mutableStateOf(false) }
     val view = LocalView.current
     var isSpeakerEnabled by remember { mutableStateOf(true) }
+    var showReviewDialog by remember { mutableStateOf(false) }
+    val isStudent = true
+    val reviewViewModel = remember { ReviewViewModel() }
 
     val userRepo = remember { UserRepository() }
     var remoteUser by remember { mutableStateOf<UserModel?>(null) }
@@ -70,14 +76,12 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
 
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-            // Request audio focus for voice call
             audioManager.requestAudioFocus(
                 null,
                 AudioManager.STREAM_VOICE_CALL,
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
             )
 
-            // Delay speaker routing to ensure Agora finishes internal setup
             Handler(Looper.getMainLooper()).postDelayed({
                 audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
                 audioManager.isSpeakerphoneOn = true
@@ -87,21 +91,21 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
             }, 500)
         }
 
-
-
         override fun onUserJoined(uid: Int, elapsed: Int) {
             Log.d("AGORA", "🔥 Remote user joined: $uid")
             remoteUid = uid
             engine?.setupRemoteVideo(VideoCanvas(remoteSurfaceView, VideoCanvas.RENDER_MODE_HIDDEN, uid))
             isRemoteConnected = true
             callActive = true
-
         }
 
         override fun onUserOffline(uid: Int, reason: Int) {
             Log.d("AGORA", "❌ Remote user left: $uid")
             isRemoteConnected = false
             callActive = false
+            if (isStudent) {
+                showReviewDialog = true
+            }
         }
 
         override fun onError(err: Int) {
@@ -142,10 +146,6 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 rtc.joinChannel(null, channelName, null, 0)
                 engine = rtc
                 Log.d("AGORA", "Speaker enabled: $isSpeakerEnabled")
-
-
-
-
             } else {
                 Log.e("AGORA", "❌ Permissions not granted")
             }
@@ -167,7 +167,11 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 val window = (view.context as? android.app.Activity)?.window
                 window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 engine = null
-                navController.popBackStack()
+                if (isStudent) {
+                    showReviewDialog = true
+                } else {
+                    navController.popBackStack()
+                }
             }
         }
     }
@@ -194,6 +198,27 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
         }
     }
 
+    if (showReviewDialog) {
+        Dialog(onDismissRequest = { showReviewDialog = false }) {
+            Column(
+                modifier = Modifier
+                    .background(Color.White)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                ReviewForm(
+                    tutorId = remoteUserId,
+                    reviewViewModel = reviewViewModel,
+                    onReviewSubmit = {
+                        navController.navigate("studentHome")
+                        showReviewDialog = false
+                    }
+                )
+            }
+        }
+    }
+
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -218,15 +243,13 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                 }
             }
         )
         Box(modifier = Modifier.weight(1f)) {
             if (joined) {
                 AndroidView(factory = { remoteSurfaceView }, modifier = Modifier.fillMaxSize())
-
-
                 AndroidView(
                     factory = { localSurfaceView },
                     modifier = Modifier
@@ -253,7 +276,6 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 )
             }
 
-
             if (callActive) {
                 Text(
                     text = String.format("⏱ %02d:%02d",
@@ -269,7 +291,6 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 )
             }
         }
-
 
         Row(
             modifier = Modifier
@@ -328,7 +349,7 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                     )
             ) {
                 Icon(
-                    imageVector = if (isSpeakerEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                    imageVector = if (isSpeakerEnabled) Icons.AutoMirrored.Filled.VolumeUp else Icons.Default.VolumeOff,
                     contentDescription = "Speaker",
                     tint = Color.White
                 )
@@ -336,12 +357,16 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
 
             IconButton(
                 onClick = {
-                    navController.popBackStack()
                     engine?.leaveChannel()
                     engine?.stopPreview()
                     RtcEngine.destroy()
                     Log.d("AGORA", "✅ End call & destroy")
                     engine = null
+                    if (isStudent) {
+                        showReviewDialog = true
+                    } else {
+                        navController.popBackStack()
+                    }
                 },
                 modifier = Modifier
                     .size(buttonSize)

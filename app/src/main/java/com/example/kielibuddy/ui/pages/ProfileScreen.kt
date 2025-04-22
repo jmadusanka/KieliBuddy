@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,7 +27,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.UserModel
-import com.example.kielibuddy.ui.components.ReviewForm
 import com.example.kielibuddy.ui.components.ReviewList
 import com.example.kielibuddy.ui.theme.Purple40
 import com.example.kielibuddy.viewmodel.AuthViewModel
@@ -78,7 +78,6 @@ fun ProfileScreen(
     }
 
     val rating = if (reviews.isNotEmpty()) "%.1f/5 ★".format(reviews.map { it.rating }.average()) else "No Rating"
-    val totalEarnings = paymentHistory.sumOf { it.amount } / 100.0
     val totalHours = paymentHistory.sumOf { it.hours }
     val totalStudents = paymentHistory.map { it.studentId }.distinct().count()
 
@@ -92,7 +91,7 @@ fun ProfileScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 actions = { Spacer(modifier = Modifier.width(48.dp)) },
@@ -157,7 +156,7 @@ fun ProfileScreen(
                             Text(text = "Per hour", style = MaterialTheme.typography.bodySmall)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Text(text = "${"%.1f".format(totalHours)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text(text = "%.1f".format(totalHours), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                             Text(text = "Hours", style = MaterialTheme.typography.bodySmall)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
@@ -195,7 +194,6 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     userData?.id?.let { tutorId ->
-                        ReviewForm(tutorId = tutorId, reviewViewModel = reviewViewModel)
                         ReviewList(reviews = reviews)
                     }
                 }
