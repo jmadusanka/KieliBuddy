@@ -3,6 +3,7 @@ package com.example.kielibuddy.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -15,7 +16,8 @@ import java.util.*
 fun ReviewForm(
     tutorId: String,
     reviewViewModel: ReviewViewModel,
-    onReviewSubmit: () -> Unit
+    onReviewSubmit: () -> Unit,
+    onSkipReview: () -> Unit
 ) {
     var rating by remember { mutableStateOf(0) }
     var comment by remember { mutableStateOf(TextFieldValue("")) }
@@ -53,34 +55,43 @@ fun ReviewForm(
             )
         }
 
-        Button(
-            onClick = {
-                val review = Review(
-                    id = UUID.randomUUID().toString(),
-                    tutorId = tutorId,
-                    studentId = currentUserId,
-                    rating = rating,
-                    comment = comment.text,
-                    timestamp = System.currentTimeMillis()
-                )
-                reviewViewModel.submitReview(
-                    review,
-                    onSuccess = {
+        Row( // Wrap buttons in a Row
+            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
 
-                        rating = 0
-                        comment = TextFieldValue("")
-                        errorMessage = null
-                        onReviewSubmit()
-                    },
-                    onError = { message ->
-                        errorMessage = message
-                    }
-                )
-            },
-            enabled = rating > 0 && comment.text.isNotBlank(),
-            modifier = Modifier.padding(top = 12.dp)
         ) {
-            Text("Submit")
+            TextButton(onClick = onSkipReview) { // "Skip" button
+                Text("Skip")
+            }
+            Spacer(modifier = Modifier.width(8.dp)) // Add some space between the buttons
+            Button( // "Submit" button
+                onClick = {
+                    val review = Review(
+                        id = UUID.randomUUID().toString(),
+                        tutorId = tutorId,
+                        studentId = currentUserId,
+                        rating = rating,
+                        comment = comment.text,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    reviewViewModel.submitReview(
+                        review,
+                        onSuccess = {
+                            rating = 0
+                            comment = TextFieldValue("")
+                            errorMessage = null
+                            onReviewSubmit()
+                        },
+                        onError = { message ->
+                            errorMessage = message
+                        }
+                    )
+                },
+                enabled = rating > 0 && comment.text.isNotBlank(),
+            ) {
+                Text("Submit")
+            }
         }
     }
 }

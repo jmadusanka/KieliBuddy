@@ -43,7 +43,13 @@ import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideoCallScreen(navController: NavController, channelName: String, appId: String, remoteUserId: String) {
+fun VideoCallScreen(
+    navController: NavController,
+    channelName: String,
+    appId: String,
+    remoteUserId: String,
+    isStudent: Boolean
+) {
     val context = LocalContext.current
     val localSurfaceView = remember { SurfaceView(context) }
     val remoteSurfaceView = remember { SurfaceView(context) }
@@ -52,14 +58,14 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
     var localUid by remember { mutableStateOf<Int?>(null) }
     var remoteUid by remember { mutableStateOf<Int?>(null) }
     var isMicMuted by remember { mutableStateOf(false) }
-    var callDuration by rememberSaveable { mutableStateOf(0L) }
+    var callDuration by rememberSaveable { mutableLongStateOf(0L) }
     val maxCallDurationInMinutes = 20L
     var callActive by remember { mutableStateOf(false) }
     var isRemoteConnected by remember { mutableStateOf(false) }
     val view = LocalView.current
     var isSpeakerEnabled by remember { mutableStateOf(true) }
     var showReviewDialog by remember { mutableStateOf(false) }
-    val isStudent = true
+
     val reviewViewModel = remember { ReviewViewModel() }
 
     val userRepo = remember { UserRepository() }
@@ -75,7 +81,6 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
             localUid = uid
 
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
             audioManager.requestAudioFocus(
                 null,
                 AudioManager.STREAM_VOICE_CALL,
@@ -105,6 +110,10 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
             callActive = false
             if (isStudent) {
                 showReviewDialog = true
+            } else {
+                navController.navigate("tutorDashboard") {
+                    popUpTo(0)
+                }
             }
         }
 
@@ -170,7 +179,9 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 if (isStudent) {
                     showReviewDialog = true
                 } else {
-                    navController.popBackStack()
+                    navController.navigate("tutorDashboard") {
+                        popUpTo(0)
+                    }
                 }
             }
         }
@@ -198,11 +209,12 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
         }
     }
 
-    if (showReviewDialog) {
+    // Show Review Dialog only for Students
+    if (showReviewDialog && isStudent) {
         Dialog(onDismissRequest = { showReviewDialog = false }) {
             Column(
                 modifier = Modifier
-                    .background(Color.White)
+                    .background(Color.White, shape = MaterialTheme.shapes.medium)
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -210,14 +222,21 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                     tutorId = remoteUserId,
                     reviewViewModel = reviewViewModel,
                     onReviewSubmit = {
-                        navController.navigate("studentHome")
+                        navController.navigate("studentHome") {
+                            popUpTo(0)
+                        }
+                        showReviewDialog = false
+                    },
+                    onSkipReview = {  // Pass the onSkipReview lambda here
+                        navController.navigate("studentHome") {
+                            popUpTo(0)
+                        }
                         showReviewDialog = false
                     }
                 )
             }
         }
     }
-
 
     Column(
         modifier = Modifier
@@ -247,6 +266,7 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                 }
             }
         )
+
         Box(modifier = Modifier.weight(1f)) {
             if (joined) {
                 AndroidView(factory = { remoteSurfaceView }, modifier = Modifier.fillMaxSize())
@@ -278,9 +298,11 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
 
             if (callActive) {
                 Text(
-                    text = String.format("⏱ %02d:%02d",
+                    text = String.format(
+                        "⏱ %02d:%02d",
                         TimeUnit.SECONDS.toMinutes(callDuration),
-                        callDuration % 60),
+                        callDuration % 60
+                    ),
                     color = Color.White,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -365,7 +387,9 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
                     if (isStudent) {
                         showReviewDialog = true
                     } else {
-                        navController.popBackStack()
+                        navController.navigate("tutorHome") {
+                            popUpTo(0)
+                        }
                     }
                 },
                 modifier = Modifier
@@ -381,3 +405,4 @@ fun VideoCallScreen(navController: NavController, channelName: String, appId: St
         }
     }
 }
+

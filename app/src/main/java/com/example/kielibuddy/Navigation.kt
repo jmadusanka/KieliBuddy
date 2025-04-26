@@ -128,14 +128,19 @@ fun Navigation(
         composable("videoCall/{channelName}/{userId}") { backStackEntry ->
             val channelName = backStackEntry.arguments?.getString("channelName") ?: ""
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val currentUserRole = authViewModel.userData.value?.role
+
+            val isStudent = currentUserRole == UserRole.STUDENT
 
             VideoCallScreen(
                 navController = navController,
                 channelName = channelName,
                 appId = "52d90b7c9c4e4416b229514e958b9c74",
-                remoteUserId = userId
+                remoteUserId = userId,
+                isStudent = isStudent
             )
         }
+
 
         composable("tutorPublicProfile/{tutorId}") { backStackEntry ->
             val tutorId = backStackEntry.arguments?.getString("tutorId") ?: ""
