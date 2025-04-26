@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.kielibuddy.model.UserModel
-import com.example.kielibuddy.model.UserRole
 import com.example.kielibuddy.ui.components.BackButton
 import com.example.kielibuddy.ui.components.BottomNavigationBar
 import com.example.kielibuddy.viewmodel.AuthViewModel
@@ -47,34 +46,28 @@ private val dividerColor = Color(0xFFEEEEEE)
 fun StudentPublicProfileScreen(
     modifier: Modifier = Modifier,
     navController: NavController,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    userId: String // Receive the userId as a parameter
 ) {
-    val userData = remember {
-        mutableStateOf(
-            UserModel(
-                id = "dummyId",
-                firstName = "John",
-                lastName = "Doe",
-                role = UserRole.STUDENT,
-                profileImg = "https://via.placeholder.com/150",
-                aboutMe = "A passionate language learner eager to improve my skills.",
-                nativeLanguage = "English",
-                languageProficiency = "Beginner in Spanish",
-                focusAreas = "Speaking and listening comprehension",
-                background = "University student with an interest in linguistics.",
-                lessonPrefs = "Prefer 30-minute sessions twice a week.",
-                completedLessons = 5
-            )
-        )
-    }
-
+    val userData by authViewModel.userData.observeAsState()
     val loading = remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        delay(100) // Simulate a short loading time
-        loading.value = false
+
+    LaunchedEffect(userId) {
+        authViewModel.loadUserData(userId) // Load user data based on the provided userId
     }
 
-    if (loading.value) {
+    LaunchedEffect(userData) {
+        if (userData != null) {
+            loading.value = false
+        } else {
+            delay(200)
+            if (authViewModel.userData.value == null) {
+                loading.value = false
+            }
+        }
+    }
+
+    if (loading.value || userData == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = primaryColor)
         }
@@ -95,10 +88,15 @@ fun StudentPublicProfileScreen(
                 title = {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "Student Profile",
+                            text = "${userData?.firstName} ${userData?.lastName}'s Profile", // Display the name in the title
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
                         )
+                    }
+                },
+                actions = {
+                    if (userData?.id == authViewModel.auth.currentUser?.uid) {
+                        ProfileMenu(navController = navController, authViewModel = authViewModel)
                     }
                 }
             )
@@ -113,32 +111,80 @@ fun StudentPublicProfileScreen(
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             item {
-                ProfileHeaderSection(userData.value, navController, authViewModel)
+                userData?.let { ProfileHeaderSectionReadOnly(it) }
             }
-            item {
-                StudentStatsCard(userData.value)
-            }
-            item {
-                StudentInfoSection(userData.value)
+            userData?.let {
+
+                item {
+                    StudentInfoSectionReadOnly(it)
+                }
+                item {
+                    StudentDetailedInfoSectionReadOnly(it)
+                }
             }
         }
     }
 }
 
 @Composable
-fun ProfileHeaderSection(user: UserModel, navController: NavController, authViewModel: AuthViewModel) {
+fun ProfileMenu(navController: NavController, authViewModel: AuthViewModel) {
     var menuExpanded by remember { mutableStateOf(false) }
 
+    IconButton(
+        onClick = { menuExpanded = true }
+    ) {
+        Icon(
+            Icons.Default.MoreVert,
+            contentDescription = "More Options",
+            tint = primaryColor
+        )
+    }
+
+    // Dropdown Menu
+    DropdownMenu(
+        expanded = menuExpanded,
+        onDismissRequest = { menuExpanded = false },
+        offset = DpOffset(x = (-8).dp, y = 4.dp)
+    ) {
+        DropdownMenuItem(
+            text = { Text("Edit Profile") },
+            onClick = {
+                menuExpanded = false
+                navController.navigate("editProfile")
+            },
+            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Edit") }
+        )
+        DropdownMenuItem(
+            text = { Text("Sign Out") },
+            onClick = {
+                menuExpanded = false
+                authViewModel.signout()
+            },
+            leadingIcon = { Icon(Icons.Default.ExitToApp, contentDescription = "Sign Out") }
+        )
+        DropdownMenuItem(
+            text = { Text("View Sample Pages") },
+            onClick = {
+                menuExpanded = false
+                navController.navigate("gallery")
+            },
+            leadingIcon = { Icon(Icons.Default.Menu, contentDescription = "Sample page") }
+        )
+    }
+}
+
+@Composable
+fun ProfileHeaderSectionReadOnly(user: UserModel) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(primaryColor)
-            .padding(top = 24.dp, bottom = 32.dp)
+            .padding(top = 16.dp, bottom = 16.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 10.dp)
         ) {
             // Profile Image
             Image(
@@ -146,58 +192,14 @@ fun ProfileHeaderSection(user: UserModel, navController: NavController, authView
                 contentDescription = "Profile Picture",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(80.dp)
                     .clip(CircleShape)
                     .border(3.dp, Color.White, CircleShape)
                     .align(Alignment.Center)
             )
-
-            // Menu Button
-            IconButton(
-                onClick = { menuExpanded = true },
-                modifier = Modifier.align(Alignment.TopEnd)
-            ) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = "More Options",
-                    tint = Color.White
-                )
-            }
-
-            // Dropdown Menu
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-                offset = DpOffset(x = (-8).dp, y = 4.dp)
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Edit Profile") },
-                    onClick = {
-                        menuExpanded = false
-                        navController.navigate("editProfile")
-                    },
-                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "Edit") }
-                )
-                DropdownMenuItem(
-                    text = { Text("Sign Out") },
-                    onClick = {
-                        menuExpanded = false
-                        authViewModel.signout()
-                    },
-                    leadingIcon = { Icon(Icons.Default.ExitToApp, contentDescription = "Sign Out") }
-                )
-                DropdownMenuItem(
-                    text = { Text("View Sample Pages") },
-                    onClick = {
-                        menuExpanded = false
-                        navController.navigate("gallery")
-                    },
-                    leadingIcon = { Icon(Icons.Default.Menu, contentDescription = "Sample page") }
-                )
-            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // Name and Role
         Column(
@@ -220,86 +222,10 @@ fun ProfileHeaderSection(user: UserModel, navController: NavController, authView
     }
 }
 
-@Composable
-fun StudentStatsCard(user: UserModel) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .offset(y = (-20).dp)
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            StatItem(
-                icon = Icons.Outlined.Edit,
-                value = "${user.completedLessons}",
-                label = "Lessons"
-            )
 
-            Divider(
-                modifier = Modifier
-                    .height(40.dp)
-                    .width(1.dp),
-                color = dividerColor
-            )
-
-            StatItem(
-                icon = Icons.Outlined.AddCircle,
-                value = user.nativeLanguage.toString(),
-                label = "Native"
-            )
-
-            Divider(
-                modifier = Modifier
-                    .height(40.dp)
-                    .width(1.dp),
-                color = dividerColor
-            )
-
-            StatItem(
-                icon = Icons.Outlined.AccountBox,
-                value = user.languageProficiency.toString(),
-                label = "Learning"
-            )
-        }
-    }
-}
 
 @Composable
-fun StatItem(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, label: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = primaryColor,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            color = textPrimary
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = textSecondary
-        )
-    }
-}
-
-@Composable
-fun StudentInfoSection(user: UserModel) {
+fun StudentInfoSectionReadOnly(user: UserModel) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -310,38 +236,53 @@ fun StudentInfoSection(user: UserModel) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // About Me Section with icon
-            InfoBlockWithIcon(
+            InfoBlockWithIconReadOnly(
                 icon = Icons.Outlined.Person,
                 title = "About Me",
                 content = user.aboutMe
-            )
-
-            // Language Focus
-            InfoBlockWithIcon(
-                icon = Icons.Outlined.Person,
-                title = "Areas of Focus",
-                content = user.focusAreas
-            )
-
-            // Background
-            InfoBlockWithIcon(
-                icon = Icons.Outlined.Edit,
-                title = "Background & Interests",
-                content = user.background
-            )
-
-            // Lesson Preferences
-            InfoBlockWithIcon(
-                icon = Icons.Outlined.Menu,
-                title = "Lesson Preferences",
-                content = user.lessonPrefs
             )
         }
     }
 }
 
 @Composable
-fun InfoBlockWithIcon(
+fun StudentDetailedInfoSectionReadOnly(user: UserModel) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Native Language
+            InfoBlockWithIconReadOnly(
+                icon = Icons.Outlined.Translate,
+                title = "Native Language",
+                content = user.nativeLanguage
+            )
+
+            // Learning Language
+            InfoBlockWithIconReadOnly(
+                icon = Icons.Outlined.ChatBubbleOutline,
+                title = "Learning Language",
+                content = user.languageProficiency
+            )
+
+            // Language Proficiency Levels
+            InfoBlockWithIconReadOnly(
+                icon = Icons.Outlined.Flag,
+                title = "Finnish Language Proficiency",
+                content = user.langLevel?.joinToString(", ")
+            )
+
+        }
+    }
+}
+
+@Composable
+fun InfoBlockWithIconReadOnly(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     content: String?
@@ -397,9 +338,7 @@ fun InfoBlockWithIcon(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (title != "Lesson Preferences") {
-                Divider(color = dividerColor)
-            }
+            Divider(color = dividerColor)
         }
     }
 }

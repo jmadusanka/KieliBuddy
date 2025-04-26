@@ -3,6 +3,7 @@ package com.example.kielibuddy.ui.pages
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -132,7 +133,7 @@ fun StudentScheduleScreen(
                             Text("Upcoming Lessons", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
                         items(upcomingBookings) { booking ->
-                            BookingCard(booking = booking, viewerRole = roleMode, isPast = false, navController)
+                            BookingCard(booking = booking, viewerRole = roleMode, isPast = false, navController = navController)
                         }
                     }
 
@@ -142,7 +143,7 @@ fun StudentScheduleScreen(
                             Text("Past Lessons", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Gray)
                         }
                         items(pastBookings) { booking ->
-                            BookingCard(booking = booking, viewerRole = roleMode, isPast = true, navController)
+                            BookingCard(booking = booking, viewerRole = roleMode, isPast = true, navController = navController)
                         }
                     }
                 }
@@ -185,7 +186,12 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false,
     val fullName = otherUser?.let { "${it.firstName} ${it.lastName}" } ?: otherUserId
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                // Navigate to StudentPublicProfileScreen when the card is clicked
+                navController.navigate("studentPublicProfile/$otherUserId")
+            },
         colors = CardDefaults.cardColors(
             containerColor = if (isPast) Color(0xFFF0F0F0) else Color.White
         ),
@@ -226,10 +232,6 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false,
                         val minutesLeft = durationUntilStart.toMinutes().toInt()
                         Text("Starts in $minutesLeft min", fontSize = 12.sp, color = Color.Red)
                     }
-
-
-
-
                 }
 
                 if (!isPast) {
@@ -237,14 +239,13 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false,
                     val context = LocalContext.current
 
                     Button(
-
-                            onClick = {
-                        if (enableJoinButton) {
-                            navController.navigate("videoCall/$channelName/$otherUserId")
-                        } else {
-                            Toast.makeText(context, "You can only join 5 minutes before the lesson.", Toast.LENGTH_SHORT).show()
-                        }
-                    },
+                        onClick = {
+                            if (enableJoinButton) {
+                                navController.navigate("videoCall/$channelName/$otherUserId")
+                            } else {
+                                Toast.makeText(context, "You can only join 5 minutes before the lesson.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (enableJoinButton) MaterialTheme.colorScheme.primary else Color.Gray
                         ),
@@ -254,19 +255,7 @@ fun BookingCard(booking: Booking, viewerRole: UserRole, isPast: Boolean = false,
                         Text("Join Now", fontSize = 13.sp)
                     }
                 }
-
-
-
-// }
-
             }
-
-
-
-
-
         }
-
     }
-
 }

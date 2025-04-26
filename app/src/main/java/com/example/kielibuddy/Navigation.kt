@@ -1,6 +1,7 @@
 package com.example.kielibuddy
 
 import android.app.Activity
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -94,8 +95,15 @@ fun Navigation(
         composable("tutorEditProfile") {
             EditableTutorProfilePage(navController = navController, authViewModel = authViewModel)
         }
-        composable("StudentPublicProfileScreen") {
-            StudentPublicProfileScreen(navController = navController, authViewModel = authViewModel)
+        composable("studentPublicProfile/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            val authViewModel = viewModel<AuthViewModel>() // Or inject your ViewModel
+            if (userId != null) {
+                StudentPublicProfileScreen(navController = navController, authViewModel = authViewModel, userId = userId)
+            } else {
+                // Handle the case where userId is null (e.g., show an error)
+                Text("Error: User ID not provided")
+            }
         }
         composable("StudentScheduleScreen") {
             StudentScheduleScreen(navController = navController, authViewModel = authViewModel)

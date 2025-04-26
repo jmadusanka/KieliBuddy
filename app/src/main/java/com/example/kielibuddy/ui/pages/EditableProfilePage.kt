@@ -45,8 +45,10 @@ fun EditableProfilePage(navController: NavController, authViewModel: AuthViewMod
     var lastName by remember { mutableStateOf(TextFieldValue(userData?.lastName ?: "")) }
     var email by remember { mutableStateOf(TextFieldValue(userData?.email ?: "")) }
     var aboutMe by remember { mutableStateOf(TextFieldValue(userData?.aboutMe ?: "")) }
-    var languageProficiency by remember { mutableStateOf(TextFieldValue(userData?.langLevel?.joinToString(", ") ?: "")) }
+    var languageProficiency by remember { mutableStateOf(TextFieldValue(userData?.languageProficiency ?: "")) }
+    var nativeLanguage by remember { mutableStateOf(TextFieldValue(userData?.nativeLanguage ?: "")) }
     var birthDate by remember { mutableStateOf(TextFieldValue(userData?.birthDate ?: "")) }
+    var langLevel by remember { mutableStateOf(TextFieldValue(userData?.langLevel?.joinToString(", ") ?: "")) } // Existing
     var uploading by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(
@@ -172,10 +174,28 @@ fun EditableProfilePage(navController: NavController, authViewModel: AuthViewMod
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Additional Information
+            // Language Information
+            OutlinedTextField(
+                value = nativeLanguage,
+                onValueChange = { nativeLanguage = it },
+                label = { Text("Native Language") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             OutlinedTextField(
                 value = languageProficiency,
                 onValueChange = { languageProficiency = it },
+                label = { Text("Learning Language") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = langLevel,
+                onValueChange = { langLevel = it },
                 label = { Text("Language Proficiency (comma separated)") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -204,10 +224,12 @@ fun EditableProfilePage(navController: NavController, authViewModel: AuthViewMod
                         onSuccess = {
                             val updates = mapOf(
                                 "aboutMe" to aboutMe.text,
-                                "langLevel" to languageProficiency.text.split(",").map { it.trim() },
-                                "birthDate" to birthDate.text
+                                "langLevel" to langLevel.text.split(",").map { it.trim() },
+                                "birthDate" to birthDate.text,
+                                "nativeLanguage" to nativeLanguage.text,
+                                "languageProficiency" to languageProficiency.text
                             )
-                            authViewModel.updateTutorProfileFields(
+                            authViewModel.updateTutorProfileFields( // Reusing this function
                                 updates,
                                 onSuccess = {
                                     Toast.makeText(context, "Profile updated", Toast.LENGTH_SHORT).show()
